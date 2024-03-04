@@ -1,0 +1,756 @@
+Model 1:
+  Number of Epochs: 5
+  Batch Size: 16
+  Mean Losses Train: [1.7964800596237183, 1.7645480632781982, 1.7505548000335693, 1.7422263622283936, 1.7303613424301147]
+  Mean Losses Test: [1.7796205282211304, 1.7698062658309937, 1.7577427625656128, 1.750298261642456, 1.7396568059921265]
+  Minimum Mean Losses Train: 1.7303613424301147
+  Minimum Mean Losses Test: 1.7396568059921265
+  Layers:
+    Layer: cnn_layers.0.weight
+      Parameter Count: 1024
+      Size: [64, 1, 4, 4]
+    Layer: cnn_layers.0.bias
+      Parameter Count: 64
+      Size: [64]
+    Layer: cnn_layers.1.weight
+      Parameter Count: 64
+      Size: [64]
+    Layer: cnn_layers.1.bias
+      Parameter Count: 64
+      Size: [64]
+    Layer: cnn_layers.1.running_mean
+      Parameter Count: 64
+      Size: [64]
+    Layer: cnn_layers.1.running_var
+      Parameter Count: 64
+      Size: [64]
+    Layer: cnn_layers.1.num_batches_tracked
+      Parameter Count: 1
+      Size: []
+    Layer: cnn_layers.5.weight
+      Parameter Count: 32768
+      Size: [32, 64, 4, 4]
+    Layer: cnn_layers.5.bias
+      Parameter Count: 32
+      Size: [32]
+    Layer: cnn_layers.6.weight
+      Parameter Count: 32
+      Size: [32]
+    Layer: cnn_layers.6.bias
+      Parameter Count: 32
+      Size: [32]
+    Layer: cnn_layers.6.running_mean
+      Parameter Count: 32
+      Size: [32]
+    Layer: cnn_layers.6.running_var
+      Parameter Count: 32
+      Size: [32]
+    Layer: cnn_layers.6.num_batches_tracked
+      Parameter Count: 1
+      Size: []
+    Layer: cnn_layers.10.weight
+      Parameter Count: 8192
+      Size: [16, 32, 4, 4]
+    Layer: cnn_layers.10.bias
+      Parameter Count: 16
+      Size: [16]
+    Layer: cnn_layers.11.weight
+      Parameter Count: 16
+      Size: [16]
+    Layer: cnn_layers.11.bias
+      Parameter Count: 16
+      Size: [16]
+    Layer: cnn_layers.11.running_mean
+      Parameter Count: 16
+      Size: [16]
+    Layer: cnn_layers.11.running_var
+      Parameter Count: 16
+      Size: [16]
+    Layer: cnn_layers.11.num_batches_tracked
+      Parameter Count: 1
+      Size: []
+    Layer: linear_layers.0.weight
+      Parameter Count: 36864
+      Size: [256, 144]
+    Layer: linear_layers.0.bias
+      Parameter Count: 256
+      Size: [256]
+    Layer: linear_layers.1.weight
+      Parameter Count: 1536
+      Size: [6, 256]
+    Layer: linear_layers.1.bias
+      Parameter Count: 6
+      Size: [6]
+
+Model 2:
+  Number of Epochs: 5
+  Batch Size: 32
+  Mean Losses Train: [1.815835952758789, 1.7839080095291138, 1.772499680519104, 1.7590094804763794, 1.7545948028564453]
+  Mean Losses Test: [1.7909607887268066, 1.7797749042510986, 1.770588755607605, 1.7628734111785889, 1.7577697038650513]
+  Minimum Mean Losses Train: 1.7545948028564453
+  Minimum Mean Losses Test: 1.7577697038650513
+  Layers:
+    Layer: cnn_layers.0.weight
+      Parameter Count: 1024
+      Size: [64, 1, 4, 4]
+    Layer: cnn_layers.0.bias
+      Parameter Count: 64
+      Size: [64]
+    Layer: cnn_layers.1.weight
+      Parameter Count: 64
+      Size: [64]
+    Layer: cnn_layers.1.bias
+      Parameter Count: 64
+      Size: [64]
+    Layer: cnn_layers.1.running_mean
+      Parameter Count: 64
+      Size: [64]
+    Layer: cnn_layers.1.running_var
+      Parameter Count: 64
+      Size: [64]
+    Layer: cnn_layers.1.num_batches_tracked
+      Parameter Count: 1
+      Size: []
+    Layer: cnn_layers.5.weight
+      Parameter Count: 32768
+      Size: [32, 64, 4, 4]
+    Layer: cnn_layers.5.bias
+      Parameter Count: 32
+      Size: [32]
+    Layer: cnn_layers.6.weight
+      Parameter Count: 32
+      Size: [32]
+    Layer: cnn_layers.6.bias
+      Parameter Count: 32
+      Size: [32]
+    Layer: cnn_layers.6.running_mean
+      Parameter Count: 32
+      Size: [32]
+    Layer: cnn_layers.6.running_var
+      Parameter Count: 32
+      Size: [32]
+    Layer: cnn_layers.6.num_batches_tracked
+      Parameter Count: 1
+      Size: []
+    Layer: cnn_layers.10.weight
+      Parameter Count: 8192
+      Size: [16, 32, 4, 4]
+    Layer: cnn_layers.10.bias
+      Parameter Count: 16
+      Size: [16]
+    Layer: cnn_layers.11.weight
+      Parameter Count: 16
+      Size: [16]
+    Layer: cnn_layers.11.bias
+      Parameter Count: 16
+      Size: [16]
+    Layer: cnn_layers.11.running_mean
+      Parameter Count: 16
+      Size: [16]
+    Layer: cnn_layers.11.running_var
+      Parameter Count: 16
+      Size: [16]
+    Layer: cnn_layers.11.num_batches_tracked
+      Parameter Count: 1
+      Size: []
+    Layer: linear_layers.0.weight
+      Parameter Count: 36864
+      Size: [256, 144]
+    Layer: linear_layers.0.bias
+      Parameter Count: 256
+      Size: [256]
+    Layer: linear_layers.1.weight
+      Parameter Count: 1536
+      Size: [6, 256]
+    Layer: linear_layers.1.bias
+      Parameter Count: 6
+      Size: [6]
+
+Model 3:
+  Number of Epochs: 5
+  Batch Size: 64
+  Mean Losses Train: [1.8197520971298218, 1.8069252967834473, 1.7913544178009033, 1.7838630676269531, 1.7738087177276611]
+  Mean Losses Test: [1.7945390939712524, 1.7930924892425537, 1.788863182067871, 1.7840592861175537, 1.781097173690796]
+  Minimum Mean Losses Train: 1.7738087177276611
+  Minimum Mean Losses Test: 1.781097173690796
+  Layers:
+    Layer: cnn_layers.0.weight
+      Parameter Count: 1024
+      Size: [64, 1, 4, 4]
+    Layer: cnn_layers.0.bias
+      Parameter Count: 64
+      Size: [64]
+    Layer: cnn_layers.1.weight
+      Parameter Count: 64
+      Size: [64]
+    Layer: cnn_layers.1.bias
+      Parameter Count: 64
+      Size: [64]
+    Layer: cnn_layers.1.running_mean
+      Parameter Count: 64
+      Size: [64]
+    Layer: cnn_layers.1.running_var
+      Parameter Count: 64
+      Size: [64]
+    Layer: cnn_layers.1.num_batches_tracked
+      Parameter Count: 1
+      Size: []
+    Layer: cnn_layers.5.weight
+      Parameter Count: 32768
+      Size: [32, 64, 4, 4]
+    Layer: cnn_layers.5.bias
+      Parameter Count: 32
+      Size: [32]
+    Layer: cnn_layers.6.weight
+      Parameter Count: 32
+      Size: [32]
+    Layer: cnn_layers.6.bias
+      Parameter Count: 32
+      Size: [32]
+    Layer: cnn_layers.6.running_mean
+      Parameter Count: 32
+      Size: [32]
+    Layer: cnn_layers.6.running_var
+      Parameter Count: 32
+      Size: [32]
+    Layer: cnn_layers.6.num_batches_tracked
+      Parameter Count: 1
+      Size: []
+    Layer: cnn_layers.10.weight
+      Parameter Count: 8192
+      Size: [16, 32, 4, 4]
+    Layer: cnn_layers.10.bias
+      Parameter Count: 16
+      Size: [16]
+    Layer: cnn_layers.11.weight
+      Parameter Count: 16
+      Size: [16]
+    Layer: cnn_layers.11.bias
+      Parameter Count: 16
+      Size: [16]
+    Layer: cnn_layers.11.running_mean
+      Parameter Count: 16
+      Size: [16]
+    Layer: cnn_layers.11.running_var
+      Parameter Count: 16
+      Size: [16]
+    Layer: cnn_layers.11.num_batches_tracked
+      Parameter Count: 1
+      Size: []
+    Layer: linear_layers.0.weight
+      Parameter Count: 36864
+      Size: [256, 144]
+    Layer: linear_layers.0.bias
+      Parameter Count: 256
+      Size: [256]
+    Layer: linear_layers.1.weight
+      Parameter Count: 1536
+      Size: [6, 256]
+    Layer: linear_layers.1.bias
+      Parameter Count: 6
+      Size: [6]
+
+Model 4:
+  Number of Epochs: 10
+  Batch Size: 16
+  Mean Losses Train: [1.7943670749664307, 1.7715378999710083, 1.7563600540161133, 1.7475947141647339, 1.7357754707336426, 1.7298353910446167, 1.7212090492248535, 1.7191592454910278, 1.7153351306915283, 1.7122284173965454]
+  Mean Losses Test: [1.7936676740646362, 1.7876977920532227, 1.7740345001220703, 1.7625946998596191, 1.7560912370681763, 1.7412171363830566, 1.7377973794937134, 1.7352983951568604, 1.7268564701080322, 1.7234262228012085]
+  Minimum Mean Losses Train: 1.7122284173965454
+  Minimum Mean Losses Test: 1.7234262228012085
+  Layers:
+    Layer: cnn_layers.0.weight
+      Parameter Count: 1024
+      Size: [64, 1, 4, 4]
+    Layer: cnn_layers.0.bias
+      Parameter Count: 64
+      Size: [64]
+    Layer: cnn_layers.1.weight
+      Parameter Count: 64
+      Size: [64]
+    Layer: cnn_layers.1.bias
+      Parameter Count: 64
+      Size: [64]
+    Layer: cnn_layers.1.running_mean
+      Parameter Count: 64
+      Size: [64]
+    Layer: cnn_layers.1.running_var
+      Parameter Count: 64
+      Size: [64]
+    Layer: cnn_layers.1.num_batches_tracked
+      Parameter Count: 1
+      Size: []
+    Layer: cnn_layers.5.weight
+      Parameter Count: 32768
+      Size: [32, 64, 4, 4]
+    Layer: cnn_layers.5.bias
+      Parameter Count: 32
+      Size: [32]
+    Layer: cnn_layers.6.weight
+      Parameter Count: 32
+      Size: [32]
+    Layer: cnn_layers.6.bias
+      Parameter Count: 32
+      Size: [32]
+    Layer: cnn_layers.6.running_mean
+      Parameter Count: 32
+      Size: [32]
+    Layer: cnn_layers.6.running_var
+      Parameter Count: 32
+      Size: [32]
+    Layer: cnn_layers.6.num_batches_tracked
+      Parameter Count: 1
+      Size: []
+    Layer: cnn_layers.10.weight
+      Parameter Count: 8192
+      Size: [16, 32, 4, 4]
+    Layer: cnn_layers.10.bias
+      Parameter Count: 16
+      Size: [16]
+    Layer: cnn_layers.11.weight
+      Parameter Count: 16
+      Size: [16]
+    Layer: cnn_layers.11.bias
+      Parameter Count: 16
+      Size: [16]
+    Layer: cnn_layers.11.running_mean
+      Parameter Count: 16
+      Size: [16]
+    Layer: cnn_layers.11.running_var
+      Parameter Count: 16
+      Size: [16]
+    Layer: cnn_layers.11.num_batches_tracked
+      Parameter Count: 1
+      Size: []
+    Layer: linear_layers.0.weight
+      Parameter Count: 36864
+      Size: [256, 144]
+    Layer: linear_layers.0.bias
+      Parameter Count: 256
+      Size: [256]
+    Layer: linear_layers.1.weight
+      Parameter Count: 1536
+      Size: [6, 256]
+    Layer: linear_layers.1.bias
+      Parameter Count: 6
+      Size: [6]
+
+Model 5:
+  Number of Epochs: 10
+  Batch Size: 32
+  Mean Losses Train: [1.8083723783493042, 1.7795377969741821, 1.7662245035171509, 1.7575801610946655, 1.746925950050354, 1.7401903867721558, 1.7374037504196167, 1.7272509336471558, 1.72593355178833, 1.7221475839614868]
+  Mean Losses Test: [1.7849453687667847, 1.7771248817443848, 1.7726726531982422, 1.765129804611206, 1.7603557109832764, 1.764343500137329, 1.7532953023910522, 1.7534823417663574, 1.750854253768921, 1.7443047761917114]
+  Minimum Mean Losses Train: 1.7221475839614868
+  Minimum Mean Losses Test: 1.7443047761917114
+  Layers:
+    Layer: cnn_layers.0.weight
+      Parameter Count: 1024
+      Size: [64, 1, 4, 4]
+    Layer: cnn_layers.0.bias
+      Parameter Count: 64
+      Size: [64]
+    Layer: cnn_layers.1.weight
+      Parameter Count: 64
+      Size: [64]
+    Layer: cnn_layers.1.bias
+      Parameter Count: 64
+      Size: [64]
+    Layer: cnn_layers.1.running_mean
+      Parameter Count: 64
+      Size: [64]
+    Layer: cnn_layers.1.running_var
+      Parameter Count: 64
+      Size: [64]
+    Layer: cnn_layers.1.num_batches_tracked
+      Parameter Count: 1
+      Size: []
+    Layer: cnn_layers.5.weight
+      Parameter Count: 32768
+      Size: [32, 64, 4, 4]
+    Layer: cnn_layers.5.bias
+      Parameter Count: 32
+      Size: [32]
+    Layer: cnn_layers.6.weight
+      Parameter Count: 32
+      Size: [32]
+    Layer: cnn_layers.6.bias
+      Parameter Count: 32
+      Size: [32]
+    Layer: cnn_layers.6.running_mean
+      Parameter Count: 32
+      Size: [32]
+    Layer: cnn_layers.6.running_var
+      Parameter Count: 32
+      Size: [32]
+    Layer: cnn_layers.6.num_batches_tracked
+      Parameter Count: 1
+      Size: []
+    Layer: cnn_layers.10.weight
+      Parameter Count: 8192
+      Size: [16, 32, 4, 4]
+    Layer: cnn_layers.10.bias
+      Parameter Count: 16
+      Size: [16]
+    Layer: cnn_layers.11.weight
+      Parameter Count: 16
+      Size: [16]
+    Layer: cnn_layers.11.bias
+      Parameter Count: 16
+      Size: [16]
+    Layer: cnn_layers.11.running_mean
+      Parameter Count: 16
+      Size: [16]
+    Layer: cnn_layers.11.running_var
+      Parameter Count: 16
+      Size: [16]
+    Layer: cnn_layers.11.num_batches_tracked
+      Parameter Count: 1
+      Size: []
+    Layer: linear_layers.0.weight
+      Parameter Count: 36864
+      Size: [256, 144]
+    Layer: linear_layers.0.bias
+      Parameter Count: 256
+      Size: [256]
+    Layer: linear_layers.1.weight
+      Parameter Count: 1536
+      Size: [6, 256]
+    Layer: linear_layers.1.bias
+      Parameter Count: 6
+      Size: [6]
+
+Model 6:
+  Number of Epochs: 10
+  Batch Size: 64
+  Mean Losses Train: [1.8093492984771729, 1.783480167388916, 1.7744749784469604, 1.769346833229065, 1.7629464864730835, 1.7608858346939087, 1.7533988952636719, 1.7452174425125122, 1.7430024147033691, 1.7397586107254028]
+  Mean Losses Test: [1.7855749130249023, 1.7789015769958496, 1.772172451019287, 1.7679648399353027, 1.7638505697250366, 1.7612762451171875, 1.7560988664627075, 1.75460684299469, 1.7483792304992676, 1.745564341545105]
+  Minimum Mean Losses Train: 1.7397586107254028
+  Minimum Mean Losses Test: 1.745564341545105
+  Layers:
+    Layer: cnn_layers.0.weight
+      Parameter Count: 1024
+      Size: [64, 1, 4, 4]
+    Layer: cnn_layers.0.bias
+      Parameter Count: 64
+      Size: [64]
+    Layer: cnn_layers.1.weight
+      Parameter Count: 64
+      Size: [64]
+    Layer: cnn_layers.1.bias
+      Parameter Count: 64
+      Size: [64]
+    Layer: cnn_layers.1.running_mean
+      Parameter Count: 64
+      Size: [64]
+    Layer: cnn_layers.1.running_var
+      Parameter Count: 64
+      Size: [64]
+    Layer: cnn_layers.1.num_batches_tracked
+      Parameter Count: 1
+      Size: []
+    Layer: cnn_layers.5.weight
+      Parameter Count: 32768
+      Size: [32, 64, 4, 4]
+    Layer: cnn_layers.5.bias
+      Parameter Count: 32
+      Size: [32]
+    Layer: cnn_layers.6.weight
+      Parameter Count: 32
+      Size: [32]
+    Layer: cnn_layers.6.bias
+      Parameter Count: 32
+      Size: [32]
+    Layer: cnn_layers.6.running_mean
+      Parameter Count: 32
+      Size: [32]
+    Layer: cnn_layers.6.running_var
+      Parameter Count: 32
+      Size: [32]
+    Layer: cnn_layers.6.num_batches_tracked
+      Parameter Count: 1
+      Size: []
+    Layer: cnn_layers.10.weight
+      Parameter Count: 8192
+      Size: [16, 32, 4, 4]
+    Layer: cnn_layers.10.bias
+      Parameter Count: 16
+      Size: [16]
+    Layer: cnn_layers.11.weight
+      Parameter Count: 16
+      Size: [16]
+    Layer: cnn_layers.11.bias
+      Parameter Count: 16
+      Size: [16]
+    Layer: cnn_layers.11.running_mean
+      Parameter Count: 16
+      Size: [16]
+    Layer: cnn_layers.11.running_var
+      Parameter Count: 16
+      Size: [16]
+    Layer: cnn_layers.11.num_batches_tracked
+      Parameter Count: 1
+      Size: []
+    Layer: linear_layers.0.weight
+      Parameter Count: 36864
+      Size: [256, 144]
+    Layer: linear_layers.0.bias
+      Parameter Count: 256
+      Size: [256]
+    Layer: linear_layers.1.weight
+      Parameter Count: 1536
+      Size: [6, 256]
+    Layer: linear_layers.1.bias
+      Parameter Count: 6
+      Size: [6]
+
+Model 7:
+  Number of Epochs: 15
+  Batch Size: 16
+  Mean Losses Train: [1.8077038526535034, 1.7721587419509888, 1.7555299997329712, 1.7428374290466309, 1.7362158298492432, 1.731063723564148, 1.7216137647628784, 1.7166194915771484, 1.712329626083374, 1.707635521888733, 1.7054195404052734, 1.7021468877792358, 1.6988575458526611, 1.6987967491149902, 1.6922932863235474]
+  Mean Losses Test: [1.7801235914230347, 1.770833969116211, 1.7625941038131714, 1.7490264177322388, 1.7410691976547241, 1.734580636024475, 1.7322208881378174, 1.7231929302215576, 1.7220295667648315, 1.7156089544296265, 1.7139438390731812, 1.7069988250732422, 1.7053810358047485, 1.70132577419281, 1.6975764036178589]
+  Minimum Mean Losses Train: 1.6922932863235474
+  Minimum Mean Losses Test: 1.6975764036178589
+  Layers:
+    Layer: cnn_layers.0.weight
+      Parameter Count: 1024
+      Size: [64, 1, 4, 4]
+    Layer: cnn_layers.0.bias
+      Parameter Count: 64
+      Size: [64]
+    Layer: cnn_layers.1.weight
+      Parameter Count: 64
+      Size: [64]
+    Layer: cnn_layers.1.bias
+      Parameter Count: 64
+      Size: [64]
+    Layer: cnn_layers.1.running_mean
+      Parameter Count: 64
+      Size: [64]
+    Layer: cnn_layers.1.running_var
+      Parameter Count: 64
+      Size: [64]
+    Layer: cnn_layers.1.num_batches_tracked
+      Parameter Count: 1
+      Size: []
+    Layer: cnn_layers.5.weight
+      Parameter Count: 32768
+      Size: [32, 64, 4, 4]
+    Layer: cnn_layers.5.bias
+      Parameter Count: 32
+      Size: [32]
+    Layer: cnn_layers.6.weight
+      Parameter Count: 32
+      Size: [32]
+    Layer: cnn_layers.6.bias
+      Parameter Count: 32
+      Size: [32]
+    Layer: cnn_layers.6.running_mean
+      Parameter Count: 32
+      Size: [32]
+    Layer: cnn_layers.6.running_var
+      Parameter Count: 32
+      Size: [32]
+    Layer: cnn_layers.6.num_batches_tracked
+      Parameter Count: 1
+      Size: []
+    Layer: cnn_layers.10.weight
+      Parameter Count: 8192
+      Size: [16, 32, 4, 4]
+    Layer: cnn_layers.10.bias
+      Parameter Count: 16
+      Size: [16]
+    Layer: cnn_layers.11.weight
+      Parameter Count: 16
+      Size: [16]
+    Layer: cnn_layers.11.bias
+      Parameter Count: 16
+      Size: [16]
+    Layer: cnn_layers.11.running_mean
+      Parameter Count: 16
+      Size: [16]
+    Layer: cnn_layers.11.running_var
+      Parameter Count: 16
+      Size: [16]
+    Layer: cnn_layers.11.num_batches_tracked
+      Parameter Count: 1
+      Size: []
+    Layer: linear_layers.0.weight
+      Parameter Count: 36864
+      Size: [256, 144]
+    Layer: linear_layers.0.bias
+      Parameter Count: 256
+      Size: [256]
+    Layer: linear_layers.1.weight
+      Parameter Count: 1536
+      Size: [6, 256]
+    Layer: linear_layers.1.bias
+      Parameter Count: 6
+      Size: [6]
+
+Model 8:
+  Number of Epochs: 15
+  Batch Size: 32
+  Mean Losses Train: [1.815999984741211, 1.7877652645111084, 1.7737895250320435, 1.76641845703125, 1.7540395259857178, 1.751865029335022, 1.743852138519287, 1.737115740776062, 1.733507513999939, 1.7292165756225586, 1.7275670766830444, 1.7299398183822632, 1.7235467433929443, 1.7197133302688599, 1.7180222272872925]
+  Mean Losses Test: [1.7848693132400513, 1.7811638116836548, 1.7766200304031372, 1.7711280584335327, 1.7688857316970825, 1.7621688842773438, 1.7573391199111938, 1.7550487518310547, 1.7495530843734741, 1.7455198764801025, 1.743086338043213, 1.7392693758010864, 1.7375855445861816, 1.7348802089691162, 1.7313035726547241]
+  Minimum Mean Losses Train: 1.7180222272872925
+  Minimum Mean Losses Test: 1.7313035726547241
+  Layers:
+    Layer: cnn_layers.0.weight
+      Parameter Count: 1024
+      Size: [64, 1, 4, 4]
+    Layer: cnn_layers.0.bias
+      Parameter Count: 64
+      Size: [64]
+    Layer: cnn_layers.1.weight
+      Parameter Count: 64
+      Size: [64]
+    Layer: cnn_layers.1.bias
+      Parameter Count: 64
+      Size: [64]
+    Layer: cnn_layers.1.running_mean
+      Parameter Count: 64
+      Size: [64]
+    Layer: cnn_layers.1.running_var
+      Parameter Count: 64
+      Size: [64]
+    Layer: cnn_layers.1.num_batches_tracked
+      Parameter Count: 1
+      Size: []
+    Layer: cnn_layers.5.weight
+      Parameter Count: 32768
+      Size: [32, 64, 4, 4]
+    Layer: cnn_layers.5.bias
+      Parameter Count: 32
+      Size: [32]
+    Layer: cnn_layers.6.weight
+      Parameter Count: 32
+      Size: [32]
+    Layer: cnn_layers.6.bias
+      Parameter Count: 32
+      Size: [32]
+    Layer: cnn_layers.6.running_mean
+      Parameter Count: 32
+      Size: [32]
+    Layer: cnn_layers.6.running_var
+      Parameter Count: 32
+      Size: [32]
+    Layer: cnn_layers.6.num_batches_tracked
+      Parameter Count: 1
+      Size: []
+    Layer: cnn_layers.10.weight
+      Parameter Count: 8192
+      Size: [16, 32, 4, 4]
+    Layer: cnn_layers.10.bias
+      Parameter Count: 16
+      Size: [16]
+    Layer: cnn_layers.11.weight
+      Parameter Count: 16
+      Size: [16]
+    Layer: cnn_layers.11.bias
+      Parameter Count: 16
+      Size: [16]
+    Layer: cnn_layers.11.running_mean
+      Parameter Count: 16
+      Size: [16]
+    Layer: cnn_layers.11.running_var
+      Parameter Count: 16
+      Size: [16]
+    Layer: cnn_layers.11.num_batches_tracked
+      Parameter Count: 1
+      Size: []
+    Layer: linear_layers.0.weight
+      Parameter Count: 36864
+      Size: [256, 144]
+    Layer: linear_layers.0.bias
+      Parameter Count: 256
+      Size: [256]
+    Layer: linear_layers.1.weight
+      Parameter Count: 1536
+      Size: [6, 256]
+    Layer: linear_layers.1.bias
+      Parameter Count: 6
+      Size: [6]
+
+Model 9:
+  Number of Epochs: 15
+  Batch Size: 64
+  Mean Losses Train: [1.8109887838363647, 1.7897189855575562, 1.7789890766143799, 1.7721736431121826, 1.765531063079834, 1.7583192586898804, 1.7509428262710571, 1.7504956722259521, 1.7458752393722534, 1.7425775527954102, 1.738648533821106, 1.7392632961273193, 1.7317748069763184, 1.727349877357483, 1.7325725555419922]
+  Mean Losses Test: [1.787832260131836, 1.7853400707244873, 1.7825207710266113, 1.7784370183944702, 1.7787246704101562, 1.7728742361068726, 1.7685484886169434, 1.7701014280319214, 1.7679762840270996, 1.7637797594070435, 1.7628707885742188, 1.7610440254211426, 1.753467321395874, 1.7545185089111328, 1.7556232213974]
+  Minimum Mean Losses Train: 1.727349877357483
+  Minimum Mean Losses Test: 1.753467321395874
+  Layers:
+    Layer: cnn_layers.0.weight
+      Parameter Count: 1024
+      Size: [64, 1, 4, 4]
+    Layer: cnn_layers.0.bias
+      Parameter Count: 64
+      Size: [64]
+    Layer: cnn_layers.1.weight
+      Parameter Count: 64
+      Size: [64]
+    Layer: cnn_layers.1.bias
+      Parameter Count: 64
+      Size: [64]
+    Layer: cnn_layers.1.running_mean
+      Parameter Count: 64
+      Size: [64]
+    Layer: cnn_layers.1.running_var
+      Parameter Count: 64
+      Size: [64]
+    Layer: cnn_layers.1.num_batches_tracked
+      Parameter Count: 1
+      Size: []
+    Layer: cnn_layers.5.weight
+      Parameter Count: 32768
+      Size: [32, 64, 4, 4]
+    Layer: cnn_layers.5.bias
+      Parameter Count: 32
+      Size: [32]
+    Layer: cnn_layers.6.weight
+      Parameter Count: 32
+      Size: [32]
+    Layer: cnn_layers.6.bias
+      Parameter Count: 32
+      Size: [32]
+    Layer: cnn_layers.6.running_mean
+      Parameter Count: 32
+      Size: [32]
+    Layer: cnn_layers.6.running_var
+      Parameter Count: 32
+      Size: [32]
+    Layer: cnn_layers.6.num_batches_tracked
+      Parameter Count: 1
+      Size: []
+    Layer: cnn_layers.10.weight
+      Parameter Count: 8192
+      Size: [16, 32, 4, 4]
+    Layer: cnn_layers.10.bias
+      Parameter Count: 16
+      Size: [16]
+    Layer: cnn_layers.11.weight
+      Parameter Count: 16
+      Size: [16]
+    Layer: cnn_layers.11.bias
+      Parameter Count: 16
+      Size: [16]
+    Layer: cnn_layers.11.running_mean
+      Parameter Count: 16
+      Size: [16]
+    Layer: cnn_layers.11.running_var
+      Parameter Count: 16
+      Size: [16]
+    Layer: cnn_layers.11.num_batches_tracked
+      Parameter Count: 1
+      Size: []
+    Layer: linear_layers.0.weight
+      Parameter Count: 36864
+      Size: [256, 144]
+    Layer: linear_layers.0.bias
+      Parameter Count: 256
+      Size: [256]
+    Layer: linear_layers.1.weight
+      Parameter Count: 1536
+      Size: [6, 256]
+    Layer: linear_layers.1.bias
+      Parameter Count: 6
+      Size: [6]
+

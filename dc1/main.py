@@ -5,20 +5,26 @@ from dc1.net import Net
 from dc1.train_test import train_model, test_model
 
 # Torch imports
+
 import torch
 import torch.nn as nn
 import torch.optim as optim
 from torchsummary import summary  # type: ignore
+import torch
+import torch.nn as nn
 
 # Other imports
+import matplotlib
+
+matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt  # type: ignore
 from matplotlib.pyplot import figure
-import os
 import argparse
 import plotext  # type: ignore
 from datetime import datetime
 from pathlib import Path
 from typing import List
+import os
 
 
 def main(args: argparse.Namespace, activeloop: bool = True) -> None:
@@ -33,7 +39,8 @@ def main(args: argparse.Namespace, activeloop: bool = True) -> None:
     model = Net(n_classes=6)
 
     # Initialize optimizer(s) and loss function(s)
-    optimizer = optim.SGD(model.parameters(), lr=0.001, momentum=0.1)
+#ORIGINAL    optimizer = optim.SGD(model.parameters(), lr=0.001, momentum=0.1)
+    optimizer = optim.SGD(model.parameters(), lr=0.02, momentum=0.1)
     loss_function = nn.CrossEntropyLoss()
 
     # fetch epoch and batch count from arguments
@@ -54,7 +61,7 @@ def main(args: argparse.Namespace, activeloop: bool = True) -> None:
         # Creating a summary of our model and its layers:
         summary(model, (1, 128, 128), device=device)
     elif (
-        torch.backends.mps.is_available() and not DEBUG
+            torch.backends.mps.is_available() and not DEBUG
     ):  # PyTorch supports Apple Silicon GPU's from version 1.12
         print("@@@ Apple silicon device enabled, training with Metal backend...")
         device = "mps"
@@ -65,7 +72,7 @@ def main(args: argparse.Namespace, activeloop: bool = True) -> None:
         # Creating a summary of our model and its layers:
         summary(model, (1, 128, 128), device=device)
 
-    # Lets now train and test our model for multiple epochs:
+    # Let's now train and test our model for multiple epochs:
     train_sampler = BatchSampler(
         batch_size=batch_size, dataset=train_dataset, balanced=args.balanced_batches
     )
@@ -78,7 +85,6 @@ def main(args: argparse.Namespace, activeloop: bool = True) -> None:
 
     for e in range(n_epochs):
         if activeloop:
-
             # Training:
             losses = train_model(model, train_sampler, optimizer, loss_function, device)
             # Calculating and printing statistics:
@@ -106,12 +112,31 @@ def main(args: argparse.Namespace, activeloop: bool = True) -> None:
 
     # retrieve current time to label artifacts
     now = datetime.now()
-    # check if model_weights/ subdir exists
+
+    #finding the minimum mean loss for training and testing sets
+    min_mean_loss_train = min([x.item() for x in mean_losses_train]) if mean_losses_train else None
+    min_mean_loss_test = min([x.item() for x in mean_losses_test]) if mean_losses_test else None
+
+    # Saving the model with additional information
+    model_info = {
+        "state_dict": model.state_dict(),
+        "n_epochs": n_epochs,
+        "batch_size": batch_size,
+        "mean_losses_train": [x.item() for x in mean_losses_train],  # Convert tensors to numbers
+        "mean_losses_test": [x.item() for x in mean_losses_test],
+        "min_mean_loss_train": min_mean_loss_train,  # Add minimum mean loss for training
+        "min_mean_loss_test": min_mean_loss_test,    # Add minimum mean loss for testing
+    }
+
+    # Check if model_weights/ subdir exists
     if not Path("model_weights/").exists():
         os.mkdir(Path("model_weights/"))
 
-    # Saving the model
-    torch.save(model.state_dict(), f"model_weights/model_{now.month:02}_{now.day:02}_{now.hour}_{now.minute:02}.txt")
+    # Construct the filename using current date and time
+    filename = f"model_weights/model_{now.month:02}_{now.day:02}_{now.hour}_{now.minute:02}.pt"  # Use .pt for PyTorch models
+
+    # Save the comprehensive model information
+    torch.save(model_info, filename)
 
     # Create plot of losses
     figure(figsize=(9, 10), dpi=80)
@@ -128,20 +153,39 @@ def main(args: argparse.Namespace, activeloop: bool = True) -> None:
     # save plot of losses
     fig.savefig(Path("artifacts") / f"session_{now.month:02}_{now.day:02}_{now.hour}_{now.minute:02}.png")
 
+# def perform_grid_search():
+#     epoch_range = [5, 10, 15]
+#     batch_size_range = [16, 32, 64]
+#     best_loss = float('inf')
+#     best_config = None
+#
+#     for epochs in epoch_range:
+#         for batch_size in batch_size_range:
+#             print(f"Testing configuration: epochs={epochs}, batch_size={batch_size}")
+#             # Assuming your args variable is still needed for other configurations
+#             args = argparse.Namespace(nb_epochs=epochs, batch_size=batch_size, balanced_batches=True)
+#             # Call your modified main function with the current combination
+#             # You might need to capture the performance metric from your main function to use here
+#             main(args, epochs, batch_size, activeloop=True)
+#             # Here, you'd capture the performance metric and update best_loss and best_config accordingly
+#
+#     print(f"Best configuration: epochs={best_config['epochs']}, batch_size={best_config['batch_size']} with loss {best_loss}")
+
 
 if __name__ == "__main__":
+
     parser = argparse.ArgumentParser()
 
     parser.add_argument(
-        "--nb_epochs", help="number of training iterations", default=10, type=int
+        "--nb_epochs", help="number of training iterations", default=12, type=int
     )
-    parser.add_argument("--batch_size", help="batch_size", default=25, type=int)
+    parser.add_argument("--batch_size", help="batch_size", default=4, type=int)
     parser.add_argument(
         "--balanced_batches",
         help="whether to balance batches for class labels",
-        default=True,
-        type=bool,
+        action='store_true'
     )
+    parser.set_defaults(balanced_batches=False)
     args = parser.parse_args()
 
     main(args)
