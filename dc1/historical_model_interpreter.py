@@ -14,18 +14,18 @@ def extract_and_structure_model_info(file_path):
 
     structured_info = {
         "layers": {},
-        "n_epochs": loaded_contents.get("n_epochs", None),
-        "batch_size": loaded_contents.get("batch_size", None),
+        "n_epochs": loaded_contents.get("n_epochs",None),
+        "batch_size": loaded_contents.get("batch_size",None),
         "mean_losses_train": loaded_contents.get("mean_losses_train", []),
-        "mean_losses_test": loaded_contents.get("mean_losses_test", []),
-        "min_mean_loss_train": loaded_contents.get("min_mean_loss_train", None),  # New info
-        "min_mean_loss_test": loaded_contents.get("min_mean_loss_test", None)  # New info
+        "mean_losses_test": loaded_contents.get("mean_losses_test",[]),
+        "min_mean_loss_train": loaded_contents.get("min_mean_loss_train",None),
+        "min_mean_loss_test": loaded_contents.get("min_mean_loss_test", None)
     }
 
-    state_dict = loaded_contents.get("state_dict", {})
+    state_dict = loaded_contents.get("state_dict", {    }  )
     for layer_name, params in state_dict.items():
         structured_info["layers"][layer_name] = {
-            "parameter_count": params.numel(),
+            "parameter_count": params.numel(   ),
             "size": list(params.size())
         }
 
