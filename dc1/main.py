@@ -30,6 +30,11 @@ import os
 def main(args: argparse.Namespace, activeloop: bool = True) -> None:
 
     # Load the train and test data set
+
+    """"
+    Augmentation should be applied to botyh train and test datasets. To apply, simply change the flag:
+    dataset = ImageDataset(x='path/to/images.npy', y='path/to/labels.npy', augment=True)
+    """
     train_dataset = ImageDataset(Path("../data/X_train.npy"),
                                  Path("../data/Y_train.npy"))
     test_dataset = ImageDataset(Path("../data/X_test.npy"),
