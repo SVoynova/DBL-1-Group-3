@@ -3,6 +3,7 @@ from dc1.batch_sampler import BatchSampler
 from dc1.image_dataset import ImageDataset
 from dc1.net import Net
 from dc1.train_test import train_model, test_model
+import train_test
 
 # Torch imports
 
@@ -15,8 +16,6 @@ import torch.nn as nn
 
 # Other imports
 import matplotlib
-
-matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt  # type: ignore
 from matplotlib.pyplot import figure
 import argparse
@@ -26,9 +25,10 @@ from pathlib import Path
 from typing import List
 import os
 
+matplotlib.use('TkAgg')
+
 
 def main(args: argparse.Namespace, activeloop: bool = True) -> None:
-
     # Load the train and test data set
 
     """"
@@ -44,7 +44,7 @@ def main(args: argparse.Namespace, activeloop: bool = True) -> None:
     model = Net(n_classes=6)
 
     # Initialize optimizer(s) and loss function(s)
-#ORIGINAL    optimizer = optim.SGD(model.parameters(), lr=0.001, momentum=0.1)
+    # ORIGINAL    optimizer = optim.SGD(model.parameters(), lr=0.001, momentum=0.1)
     optimizer = optim.SGD(model.parameters(), lr=0.02, momentum=0.1)
     loss_function = nn.CrossEntropyLoss()
 
@@ -87,28 +87,57 @@ def main(args: argparse.Namespace, activeloop: bool = True) -> None:
 
     mean_losses_train: List[torch.Tensor] = []
     mean_losses_test: List[torch.Tensor] = []
+    accuracies_train, precisions_train, recalls_train = [], [], []
+    accuracies_test, precisions_test, recalls_test = [], [], []
+    roc_auc_data = []
 
     for e in range(n_epochs):
         if activeloop:
             # Training:
-            losses = train_model(model, train_sampler, optimizer, loss_function, device)
+
+            train_losses, train_acc, train_prec, train_rec = train_model(model, train_sampler, optimizer, loss_function,
+                                                                         device)
             # Calculating and printing statistics:
-            mean_loss = sum(losses) / len(losses)
+            accuracies_train.append(train_acc)
+            precisions_train.append(train_prec)
+            recalls_train.append(train_rec)
+            mean_loss = sum(train_losses) / len(train_losses)
             mean_losses_train.append(mean_loss)
-            print(f"\nEpoch {e + 1} training done, loss on train set: {mean_loss}\n")
+            print(
+                f"\nEpoch {e + 1} training done:\n"
+                f"Training Metrics:\n"
+                f"Loss: {mean_loss}\n"
+                f"🎯 Accuracy: {train_acc}\n"
+                f"🎯 Precision: {train_prec}\n"
+                f"🎯 Recall: {train_rec}\n"
+            )
 
             # Testing:
-            losses = test_model(model, test_sampler, loss_function, device)
-
+            test_losses, test_acc, test_prec, test_rec, roc_auc_dict = test_model(model, test_sampler, loss_function,
+                                                                                  device)
+            # Getting ROC data
+            print(f"ROC AUC dict for epoch {e + 1}: {roc_auc_dict}")
+            roc_auc_data.append(roc_auc_dict)
             # # Calculating and printing statistics:
-            mean_loss = sum(losses) / len(losses)
+            accuracies_test.append(test_acc)
+            precisions_test.append(test_prec)
+            recalls_test.append(test_rec)
+            mean_loss = sum(test_losses) / len(test_losses)
             mean_losses_test.append(mean_loss)
-            print(f"\nEpoch {e + 1} testing done, loss on test set: {mean_loss}\n")
+            print(
+                f"\nEpoch {e + 1} testing done:\n"
+                f"Testing Metrics:\n"
+                f"Loss: {mean_loss}\n"
+                f"🎯 Accuracy: {test_acc}\n"
+                f"🎯 Precision: {test_prec}\n"
+                f"🎯 Recall: {test_rec}\n"
+            )
 
-            ### Plotting during training
+            # Plotting during training
             plotext.clf()
-            plotext.scatter(mean_losses_train, label="train")
-            plotext.scatter(mean_losses_test, label="test")
+            plotext.scatter(mean_losses_train, label="Тrain Loss")
+            plotext.scatter(mean_losses_test, label="Test Loss")
+
             plotext.title("Train and test loss")
 
             plotext.xticks([i for i in range(len(mean_losses_train) + 1)])
@@ -118,7 +147,7 @@ def main(args: argparse.Namespace, activeloop: bool = True) -> None:
     # retrieve current time to label artifacts
     now = datetime.now()
 
-    #finding the minimum mean loss for training and testing sets
+    # finding the minimum mean loss for training and testing sets
     min_mean_loss_train = min([x.item() for x in mean_losses_train]) if mean_losses_train else None
     min_mean_loss_test = min([x.item() for x in mean_losses_test]) if mean_losses_test else None
 
@@ -130,7 +159,7 @@ def main(args: argparse.Namespace, activeloop: bool = True) -> None:
         "mean_losses_train": [x.item() for x in mean_losses_train],  # Convert tensors to numbers
         "mean_losses_test": [x.item() for x in mean_losses_test],
         "min_mean_loss_train": min_mean_loss_train,  # Add minimum mean loss for training
-        "min_mean_loss_test": min_mean_loss_test,    # Add minimum mean loss for testing
+        "min_mean_loss_test": min_mean_loss_test,  # Add minimum mean loss for testing
     }
 
     # Check if model_weights/ subdir exists
@@ -143,20 +172,52 @@ def main(args: argparse.Namespace, activeloop: bool = True) -> None:
     # Save the comprehensive model information
     torch.save(model_info, filename)
 
-    # Create plot of losses
+    # create plot of losses and accuracies
     figure(figsize=(9, 10), dpi=80)
     fig, (ax1, ax2) = plt.subplots(2, sharex=True)
 
-    ax1.plot(range(1, 1 + n_epochs), [x.detach().cpu() for x in mean_losses_train], label="Train", color="blue")
-    ax2.plot(range(1, 1 + n_epochs), [x.detach().cpu() for x in mean_losses_test], label="Test", color="red")
-    fig.legend()
+    # Plot train and test losses on the first subplot (ax1)
+    ax1.plot(range(1, 1 + n_epochs), [x.detach().cpu() for x in mean_losses_train], label="Train Loss", marker='o',
+             color="blue")
+    ax1.plot(range(1, 1 + n_epochs), [x.detach().cpu() for x in mean_losses_test], label="Test Loss", marker='o',
+             color="red")
+
+    # Set titles and labels for the first subplot (ax1)
+    ax1.set_title("Train and Test Loss Over Epochs")
+    ax1.set_ylabel("Loss")
+    ax1.legend(loc='upper right')
+
+    # Plot train and test accuracies on the second subplot (ax2)
+    ax2.plot(range(1, 1 + n_epochs), accuracies_train, label="Train Accuracy", marker='o', color="blue")
+    ax2.plot(range(1, 1 + n_epochs), accuracies_test, label="Test Accuracy", marker='o', color="red")
+
+    # Set titles and labels for the second subplot (ax2)
+    ax2.set_title("Train and Test Accuracy Over Epochs")
+    ax2.set_xlabel("Epochs")
+    ax2.set_ylabel("Accuracy")
+    ax2.legend(loc='upper right')
+
+    # Plotting and saving ROC Curves
+    roc_figure, roc_axes = plt.subplots(figsize=(10, 8))
+    for _, label_name in train_test.label_names.items():
+        epoch_auc_scores = [roc_auc_data[epoch][label_name] for epoch in range(n_epochs)]
+        roc_axes.plot(range(1, n_epochs + 1), epoch_auc_scores, marker='o', label=label_name)
+
+    roc_axes.set_xlabel('Epochs')
+    roc_axes.set_ylabel('ROC AUC')
+    roc_axes.set_title('ROC AUC per Class Over Epochs')
+    roc_axes.legend(loc='lower right')
 
     # Check if /artifacts/ subdir exists
     if not Path("artifacts/").exists():
         os.mkdir(Path("artifacts/"))
 
-    # save plot of losses
+    # Save the losses and accuracy plots in the artifacts folder
     fig.savefig(Path("artifacts") / f"session_{now.month:02}_{now.day:02}_{now.hour}_{now.minute:02}.png")
+
+    # Save the ROC plot in the artifacts folder
+    roc_figure.savefig(Path("artifacts") / f"roc_curves_{now.month:02}_{now.day:02}_{now.hour}_{now.minute:02}.png")
+
 
 # def perform_grid_search():
 #     epoch_range = [5, 10, 15]
@@ -178,7 +239,6 @@ def main(args: argparse.Namespace, activeloop: bool = True) -> None:
 
 
 if __name__ == "__main__":
-
     parser = argparse.ArgumentParser()
 
     parser.add_argument(

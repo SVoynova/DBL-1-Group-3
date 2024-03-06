@@ -23,3 +23,8 @@ types-tqdm==4.64.1
 urllib3==1.26.18
 tensorflow==2.15.0
 scipy== 1.12.0
+
+pandas~=2.1.4
+setuptools~=68.0.0
+scikit-learn~=1.4.1.post1
+tabulate~=0.9.0
