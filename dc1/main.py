@@ -33,10 +33,10 @@ matplotlib.use('TkAgg')
 def main(args: argparse.Namespace, activeloop: bool = True) -> None:
 
     # Load the train and test datasets with optional augmentation // Flag = True of data augmentation
-    train_dataset = ImageDataset(Path("../data/X_train.npy"),
-                                 Path("../data/Y_train.npy"))
-    test_dataset = ImageDataset(Path("../data/X_test.npy"),
-                                Path("../data/Y_test.npy"))
+    train_dataset = ImageDataset(Path("/Users/ss.voynova/DBL-1-Group-3/data/X_train.npy"),
+                                 Path("/Users/ss.voynova/DBL-1-Group-3/data/Y_train.npy"))
+    test_dataset = ImageDataset(Path("/Users/ss.voynova/DBL-1-Group-3/data/X_test.npy"),
+                                Path("/Users/ss.voynova/DBL-1-Group-3/data/Y_test.npy"))
 
     # Initialize the Neural Net with the number of distinct labels
     model = Net(n_classes=6)
@@ -93,17 +93,24 @@ def setup_model_device(model, DEBUG):
     """
     Move the model to the appropriate device based on availability and debug flag.
     """
+    # Moving our model to the right device (CUDA will speed training up significantly!)
     if torch.cuda.is_available() and not DEBUG:
         print("@@@ CUDA device found, enabling CUDA training...")
         device = "cuda"
-    elif torch.backends.mps.is_available() and not DEBUG:
+        model.to(device)
+        # Creating a summary of our model and its layers:
+        summary(model, (1, 128, 128), device=device)
+    elif (
+            torch.backends.mps.is_available() and not DEBUG
+    ):  # PyTorch supports Apple Silicon GPU's from version 1.12
         print("@@@ Apple silicon device enabled, training with Metal backend...")
         device = "mps"
+        model.to(device)
     else:
         print("@@@ No GPU boosting device found, training on CPU...")
         device = "cpu"
-    model.to(device)
-    summary(model, (1, 128, 128), device=device)
+        # Creating a summary of our model and its layers:
+        summary(model, (1, 128, 128), device=device)
     return model, device
 
 if __name__ == "__main__":
