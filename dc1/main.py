@@ -29,14 +29,13 @@ import os
 from evaluationMetricUtility import EvaluationMettricsLogger
 matplotlib.use('TkAgg')
 
-
 def main(args: argparse.Namespace, activeloop: bool = True) -> None:
 
     # Load the train and test datasets with optional augmentation // Flag = True of data augmentation
-    train_dataset = ImageDataset(Path("/Users/ss.voynova/DBL-1-Group-3/data/X_train.npy"),
-                                 Path("/Users/ss.voynova/DBL-1-Group-3/data/Y_train.npy"))
-    test_dataset = ImageDataset(Path("/Users/ss.voynova/DBL-1-Group-3/data/X_test.npy"),
-                                Path("/Users/ss.voynova/DBL-1-Group-3/data/Y_test.npy"))
+    train_dataset = ImageDataset(Path(r"C:\Users\20223661\OneDrive - TU Eindhoven\Documents\Git\DBL-1-Group-3\data\X_train.npy"),
+                                 Path(r"C:\Users\20223661\OneDrive - TU Eindhoven\Documents\Git\DBL-1-Group-3\data\Y_train.npy"))
+    test_dataset = ImageDataset(Path(r"C:\Users\20223661\OneDrive - TU Eindhoven\Documents\Git\DBL-1-Group-3\data\X_test.npy"),
+                                Path(r"C:\Users\20223661\OneDrive - TU Eindhoven\Documents\Git\DBL-1-Group-3\data\Y_test.npy"))
 
     # Initialize the Neural Net with the number of distinct labels
     model = Net(n_classes=6)
