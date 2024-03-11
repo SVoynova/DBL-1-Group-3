@@ -22,7 +22,8 @@ img_tensor = torch.from_numpy(img_array).unsqueeze(0).unsqueeze(0).float()
 
 # Load the trained model
 model = Net(n_classes=6)
-state_dict = torch.load(r"C:\Users\20223661\OneDrive - TU Eindhoven\Documents\Git\DBL-1-Group-3\dc1\model_weights\model_03_11_9_01.pt")
+state_dict = torch.load(r"C:\Users\20223661\OneDrive - "
+                        r"TU Eindhoven\Documents\Git\DBL-1-Group-3\dc1\model_weights\model_03_11_9_01.pt")
 filtered_state_dict = {k: v for k, v in state_dict.items() if k in model.state_dict()}
 # ignore the keys that we don't need for the visualization
 model.load_state_dict(filtered_state_dict, strict=False)
@@ -46,10 +47,12 @@ heatmap = heatmap.view(-1, 1)
 weights = weights.view(1, -1)
 
 # Matrix multiplication
-heatmap = heatmap @ weights
+heatmap = heatmap @ weights  # Method 1
+# heatmap = torch.matmul(heatmap, weights)  # Method 2
 
 # Normalizing and reshaping the heatmap
-heatmap_normal = (heatmap - heatmap.min()) / (heatmap.max() - heatmap.min())
+heatmap_normal = (heatmap - heatmap.min()) / (heatmap.max() - heatmap.min())  # Method 1
+# heatmap_normal = torch.sigmoid(heatmap)  # Apply sigmoid for normalization # Method 2
 heatmap_resized = cv2.resize(heatmap_normal.detach().numpy(), (img_array.shape[2], img_array.shape[1]))
 
 print("Feature Map Shape after GAP:", feature_map.shape)
