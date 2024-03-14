@@ -3,7 +3,7 @@ import torch
 import plotext
 from matplotlib.pyplot import figure
 import matplotlib.pyplot as plt
-from dc1.train_test import train_model, test_model
+from dc1.train_test import train_model, test_model, label_names
 from pathlib import Path
 from datetime import datetime
 
@@ -21,11 +21,11 @@ class EvaluationMettricsLogger:
         self.min_mean_loss_train = None
         self.min_mean_loss_train = None
         self.now_time = datetime.now()
+        self.labels_distr_test = []
 
     def log_training_epochs(self, epoch: int, model, train_sampler, optimizer, loss_function, device):
         # Log training metrics for each epoch
-        train_losses, train_acc, train_prec, train_rec = train_model(model, train_sampler, optimizer, loss_function,
-                                                                     device)
+        train_losses, train_acc, train_prec, train_rec, labels_distr, datadis = train_model(model, train_sampler,optimizer, loss_function, device)
         self.accuracies_train.append(train_acc)
         self.precisions_train.append(train_prec)
         self.recalls_train.append(train_rec)
@@ -33,22 +33,26 @@ class EvaluationMettricsLogger:
         mean_loss = sum(train_losses) / len(train_losses)
         self.mean_losses_train.append(mean_loss)
 
-        self._print_metrics(epoch, mean_loss, train_acc, train_prec, train_rec, train=True)
+        verbose = True
+        if verbose == True:
+            self._print_metrics(epoch, mean_loss, train_acc, train_prec, train_rec, labels_distr, datadis, train=True)
 
     def log_testing_epochs(self, epoch: int, model, test_sampler, loss_function, device):
         # Log testing metrics for each epoch, including ROC AUC
-        test_losses, test_acc, test_prec, test_rec, roc_auc_dict = test_model(model, test_sampler, loss_function,
-                                                                              device)
+        test_losses, test_acc, test_prec, test_rec, roc_auc_dict, labels_distr, datadis = test_model(model, test_sampler, loss_function,device)
         print(f"ROC AUC dict for epoch {epoch + 1}: {roc_auc_dict}")
         self.roc_auc_data.append(roc_auc_dict)
         self.accuracies_test.append(test_acc)
         self.precisions_test.append(test_prec)
         self.recalls_test.append(test_rec)
-
         mean_loss = sum(test_losses) / len(test_losses)
         self.mean_losses_test.append(mean_loss)
 
-        self._print_metrics(epoch, mean_loss, test_acc, test_prec, test_rec, train=False)
+        self.labels_distr_test.append(labels_distr)
+
+        verbose = True
+        if verbose == True:
+            self._print_metrics(epoch, mean_loss, test_acc, test_prec, test_rec, labels_distr, datadis, train=False)
 
     def plot_training_testing_losses(self):
         # Plot scatter of training and testing losses using plotext
@@ -101,7 +105,7 @@ class EvaluationMettricsLogger:
         # Save plots to artifacts folder
         roc_figure.savefig(Path("artifacts") / f"roc_curves_{self.now_time.month:02}_{self.now_time.day:02}_{self.now_time.hour}_{self.now_time.minute:02}.png")
 
-    def _print_metrics(self, epoch, mean_loss, acc, prec, rec, train):
+    def _print_metrics(self, epoch, mean_loss, acc, prec, rec, l_distr, datadis, train):
         phase = "Training" if train else "Testing"
         print(f"\nEpoch {epoch + 1} {phase} done:\n"
               f"{phase} Metrics:\n"
@@ -109,6 +113,10 @@ class EvaluationMettricsLogger:
               f"🎯 Accuracy: {acc}\n"
               f"🎯 Precision: {prec}\n"
               f"🎯 Recall: {rec}\n")
+        verbose = True
+        if verbose:
+            self.output_model_distr(l_distr, False, True, False)
+            print("DATA DISTRIBUTION: ", datadis)
 
     def save_model(self, model, epoch: int, batch_size):
         filename = f"model_weights/model_{self.now_time.month:02}_{self.now_time.day:02}_{self.now_time.hour}_{self.now_time.minute:02}.pt"  # Use .pt for PyTorch models
@@ -127,6 +135,34 @@ class EvaluationMettricsLogger:
         }
 
         torch.save(model_info, filename)
+
+    def output_model_distr(self, l_distr, counts, percentages, output_as_percentage):
+        for i, count_list in enumerate(l_distr):
+            total_labels_for_disease = sum(count_list)
+            correct_labels = count_list[i]  # Number of correct labels for the disease
+            accuracy_percentage = (
+                                          correct_labels / total_labels_for_disease) * 100 if total_labels_for_disease > 0 else 0
+
+            print(f'For disease {label_names[i]} (Disease {i}):')
+            if percentages:
+                # Print accuracy as a percentage
+                print(f'- Accuracy: {accuracy_percentage:.2f}%')
+
+            if counts:
+                # Print the count of correct and incorrect labels as originally intended
+                for j, count in enumerate(count_list):
+                    if i == j:
+                        print(f'- {count} correct labels')
+                    else:
+                        if output_as_percentage:
+                            # Calculate and print the percentage
+                            total_guesses_for_class = sum([l_distr[x][j] for x in range(len(l_distr))])
+                            percentage = (count / total_guesses_for_class) * 100 if total_guesses_for_class > 0 else 0
+                            print(f'- {percentage:.2f}% incorrect guessed disease {j} ({label_names[j]})')
+                        else:
+                            # Print count as before
+                            print(f'- {count} incorrect guessed disease {j} ({label_names[j]})')
+            print()
 
     # def perform_grid_search():
     #     epoch_range = [5, 10, 15]

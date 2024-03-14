@@ -121,6 +121,6 @@ def plot_error(all_models_info):
 
 directory = "model_weights"  # Adjust the path as necessary
 all_models_info = process_all_models(directory)
-#display_model_info(all_models_info)
-plot_error(all_models_info)
+display_model_info(all_models_info)
+#plot_error(all_models_info)
 

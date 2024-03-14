@@ -1,4 +1,3 @@
-# Custom imports
 from dc1.batch_sampler import BatchSampler
 from dc1.image_dataset import ImageDataset
 from dc1.net import Net
@@ -28,21 +27,39 @@ import os
 # Utility class for the evaluation metric things
 from evaluationMetricUtility import EvaluationMettricsLogger
 matplotlib.use('TkAgg')
+from torch.optim import AdamW
+from torch.optim.lr_scheduler import StepLR
 
 def main(args: argparse.Namespace, activeloop: bool = True) -> None:
 
     # Load the train and test datasets with optional augmentation // Flag = True of data augmentation
-    train_dataset = ImageDataset(Path(r"C:\Users\20223661\OneDrive - TU Eindhoven\Documents\Git\DBL-1-Group-3\data\X_train.npy"),
-                                 Path(r"C:\Users\20223661\OneDrive - TU Eindhoven\Documents\Git\DBL-1-Group-3\data\Y_train.npy"))
-    test_dataset = ImageDataset(Path(r"C:\Users\20223661\OneDrive - TU Eindhoven\Documents\Git\DBL-1-Group-3\data\X_test.npy"),
-                                Path(r"C:\Users\20223661\OneDrive - TU Eindhoven\Documents\Git\DBL-1-Group-3\data\Y_test.npy"))
+    train_dataset = ImageDataset(Path("../data/X_train.npy"),
+                                 Path("../data/Y_train.npy"))
+    test_dataset = ImageDataset(Path("../data/X_test.npy"),
+                                Path("../data/Y_test.npy"))
 
     # Initialize the Neural Net with the number of distinct labels
     model = Net(n_classes=6)
 
     # Initialize optimizer and loss function - original params: lr=0.001, momentum=0.1
-    optimizer = optim.SGD(model.parameters(), lr=0.02, momentum=0.1)
-    loss_function = nn.CrossEntropyLoss()
+    #optimizer = optim.SGD(model.parameters(), lr=0.005, momentum=0.1)
+
+    optimizer = AdamW(model.parameters(), lr=0.01)  # AdamW requires a lower LR generally
+
+    # Define a scheduler as before
+    scheduler = StepLR(optimizer, step_size=10, gamma=0.1)
+
+    #    loss_function = nn.CrossEntropyLoss()
+
+    #Modified loss function to compensate for class imbalances
+#    class_weights = torch.tensor([2.42, 2.63, 2.06, 1.0, 3.74, 4.69], dtype=torch.float)
+    class_weights = torch.tensor([2., 2., 2, 1.0, 3, 4], dtype=torch.float)
+
+    # If you're using a GPU, ensure to transfer the weights to the same device as your model and data
+    if torch.cuda.is_available():
+        class_weights = class_weights.to('cuda')
+
+    loss_function = nn.CrossEntropyLoss(weight=class_weights)
 
     # Fetch epoch and batch count from arguments
     n_epochs = args.nb_epochs
@@ -76,6 +93,7 @@ def main(args: argparse.Namespace, activeloop: bool = True) -> None:
 
             # Plots the both training and the testing losses of the logged model
             metrics_logger.plot_training_testing_losses()
+            scheduler.step()
 
 
     if not Path("model_weights/").exists():
@@ -116,9 +134,9 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
     parser.add_argument(
-        "--nb_epochs", help="number of training iterations", default=1, type=int
+        "--nb_epochs", help="number of training iterations", default=15, type=int
     )
-    parser.add_argument("--batch_size", help="batch_size", default=1, type=int)
+    parser.add_argument("--batch_size", help="batch_size", default=32, type=int)
     parser.add_argument(
         "--balanced_batches",
         help="whether to balance batches for class labels",
@@ -128,3 +146,4 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     main(args)
+
