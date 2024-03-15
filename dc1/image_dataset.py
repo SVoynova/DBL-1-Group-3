@@ -7,31 +7,74 @@ from typing import Tuple
 from pathlib import Path
 import os
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
+import math
 
 class ImageDataset:
     """
     Creates a DataSet from numpy arrays while keeping the data
     in the more efficient numpy arrays for as long as possible and only
-    converting to torchtensors when needed (torch tensors are the objects used
+    converting to torch tensors when needed (torch tensors are the objects used
     to pass the data through the neural network and apply weights).
-    If flag {@code augment} set to True,  applies data augmentation techniques to
-    the images upon retrieval, default is False, meaning no augmentation is
-    applied.
+    If the flag {@code augment} is set to True, it applies data augmentation techniques to
+    the images upon retrieval, based on the specified labels in {@code labels_for_augmentation}.
+    The default is False, meaning no augmentation is applied.
 
     @params:
-    - x (Path): path to the numpy file containing the images
-    - y (Path): path to the numpy file containing the labels
+    - x (Path): path to the numpy file containing the images.
+    - y (Path): path to the numpy file containing the labels.
     - augment (bool, optional): If True, applies data augmentation techniques to
-      the images upon retrieval. Default is False, meaning no augmentation is
-      applied.
+      the images upon retrieval. Default is False, meaning no augmentation is applied.
+    - labels_for_augmentation (List[int], optional): Specifies the labels of images
+      to which the augmentation should be applied. If None, augmentation is applied
+      to no images. Only effective if {@code augment} is True.
     """
 
-    def __init__(self, x: Path, y: Path, augment=False) -> None:
+    def __init__(self, x: Path, y: Path, balance_dataset, augment=False, labels_for_augmentation= None) -> None:
         self.targets = np.load(y)
         self.imgs = np.load(x)
 
         # Augmentation flag (set in the constructor)
         self.augment = augment
+        if self.augment and self.labels_for_augmentation is None:
+            self.labels_for_augmentation = [0, 1, 2, 3, 4, 5]
+
+        self.labels_for_augmentation = labels_for_augmentation if labels_for_augmentation is not None else []
+
+
+        if balance_dataset:
+            # Augmentation is true, and augment all the labels
+            self.augment = True
+            self.labels_for_augmentation = [0, 1, 2, 4, 5, 6]
+
+            new_img = []
+            new_label = []
+
+            unique_labels, counts = np.unique(self.targets, return_counts=True)
+            label_counts = dict(zip(unique_labels, counts))
+
+            target_label_count = label_counts.get(3, 0)
+            for label in label_counts:
+                if label != 3:
+                    ratio = target_label_count / label_counts[label]
+                    label_counts[label] =  math.floor(ratio) - (1 if label in [0, 2] else 0)
+            a = [[label, count] for label, count in label_counts.items()]
+
+            print(a)
+
+
+            add = 0
+            for k in range(len(self.targets)):
+                new_img.append(self.imgs[k])
+                new_label.append(self.targets[k])
+                if self.targets[k] != 3:
+                    for i in range(a[self.targets[k]][1]):
+                        new_img.insert(k + add, self.imgs[k])
+                        new_label.insert(k + add, self.targets[k])
+                        add+=1
+
+            self.targets = np.array(new_label)
+            self.imgs = np.array(new_img)
+
         if self.augment:
             # Defined an ImageDataGenerator including centering, normalization, randomly fliping h/v, shifts h,w and rotation.
             self.datagen = ImageDataGenerator(
@@ -54,7 +97,9 @@ class ImageDataset:
     def __getitem__(self, idx: int) -> Tuple[torch.Tensor, np.ndarray]:
         image = self.imgs[idx]
         label = self.targets[idx]
-        if self.augment:
+
+        if self.augment and label in self.labels_for_augmentation:
+            # Only apply augmentation if the image's label is in the specified labels for augmentation
             image = np.transpose(image, (1, 2, 0))
             image = image.reshape((1,) + image.shape)
             image = next(self.datagen.flow(image, batch_size=1))[0]  # Augmentate

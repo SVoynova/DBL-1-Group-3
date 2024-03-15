@@ -32,11 +32,15 @@ from torch.optim.lr_scheduler import StepLR
 
 def main(args: argparse.Namespace, activeloop: bool = True) -> None:
 
-    # Load the train and test datasets with optional augmentation // Flag = True of data augmentation
+    # Load the train and test datasets. Enable data augmentation by setting the augmentation flag to True.
+    # The second 'False' refers to the augmentation flag (set to True to enable augmentation).
+    # The first 'False' addresses class imbalance; it should be set to True for training data to handle imbalance,
+    # and False for test data. If no 'labels_for_augmentation' is specified but augmentation is enabled,
+    # apply augmentation to all classes.
     train_dataset = ImageDataset(Path("../data/X_train.npy"),
-                                 Path("../data/Y_train.npy"))
+                                 Path("../data/Y_train.npy"), False)
     test_dataset = ImageDataset(Path("../data/X_test.npy"),
-                                Path("../data/Y_test.npy"))
+                                Path("../data/Y_test.npy"), False)
 
     # Initialize the Neural Net with the number of distinct labels
     model = Net(n_classes=6)
