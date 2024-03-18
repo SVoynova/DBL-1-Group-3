@@ -29,22 +29,23 @@ class ImageDataset:
       to no images. Only effective if {@code augment} is True.
     """
 
-    def __init__(self, x: Path, y: Path, balance_dataset, augment=False, labels_for_augmentation= None) -> None:
+    def __init__(self, x: Path, y: Path, balance_dataset, augment, labels_for_augmentation= None) -> None:
         self.targets = np.load(y)
         self.imgs = np.load(x)
 
         # Augmentation flag (set in the constructor)
         self.augment = augment
-        if self.augment and self.labels_for_augmentation is None:
-            self.labels_for_augmentation = [0, 1, 2, 3, 4, 5]
 
         self.labels_for_augmentation = labels_for_augmentation if labels_for_augmentation is not None else []
+
+        if self.augment and self.labels_for_augmentation is None:
+            self.labels_for_augmentation = [0, 1, 2, 3, 4, 5]
 
 
         if balance_dataset:
             # Augmentation is true, and augment all the labels
             self.augment = True
-            self.labels_for_augmentation = [0, 1, 2, 4, 5, 6]
+            #self.labels_for_augmentation = [0, 1, 2, 4, 5, 6]
 
             new_img = []
             new_label = []
@@ -55,12 +56,11 @@ class ImageDataset:
             target_label_count = label_counts.get(3, 0)
             for label in label_counts:
                 if label != 3:
-                    ratio = target_label_count / label_counts[label]
-                    label_counts[label] =  math.floor(ratio) - (1 if label in [0, 2] else 0)
+                    ratio = (target_label_count / label_counts[label]) * 0.1
+                    label_counts[label] = math.floor(ratio) - (1 if label in [0, 2] else 0)
             a = [[label, count] for label, count in label_counts.items()]
 
-            print(a)
-
+            #print(a)
 
             add = 0
             for k in range(len(self.targets)):

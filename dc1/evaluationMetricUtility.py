@@ -115,7 +115,7 @@ class EvaluationMettricsLogger:
               f"🎯 Recall: {rec}\n")
         verbose = True
         if verbose:
-            self.output_model_distr(l_distr, False, True, False)
+            self.output_model_distr(l_distr, True, True, True)
             print("DATA DISTRIBUTION: ", datadis)
 
     def save_model(self, model, epoch: int, batch_size):

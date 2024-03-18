@@ -1,7 +1,7 @@
 from torch import Tensor
 from tqdm import tqdm
 import torch
-from dc1.net import Net, GradCAM
+from dc1.net import Net
 from dc1.batch_sampler import BatchSampler
 from typing import Callable, List, Tuple, Any, Dict
 from sklearn.metrics import confusion_matrix, precision_score, recall_score, accuracy_score
@@ -115,8 +115,10 @@ def test_model(
 
 
     # Register hook for the layers you're interested in
-    model.layer1[0].register_forward_hook(get_activation('layer1_0'))
-    model.layer2[0].register_forward_hook(get_activation('layer2_0'))
+    printHeatmap = False
+    if printHeatmap:
+        model.layer1[0].register_forward_hook(get_activation('layer1_0'))
+        model.layer2[0].register_forward_hook(get_activation('layer2_0'))
 
 
     # We need to make sure we do not update our model based on the test data:
@@ -140,18 +142,19 @@ def test_model(
 
             last_image = x[-1]  # Save the last image processed
 
-    last_image = None
-    if last_image is not None:
-        # Let's visualize the first feature map of layer1_0 activations
-        feature_map = activations['layer1_0'][0][0].cpu().numpy()  # Indexing: [batch, feature_map, :, :]
-        plt.imshow(feature_map, cmap='hot')
-        plt.colorbar()
-        plt.show()
+    if printHeatmap:
+        last_image = None
+        if last_image is not None:
+            # Let's visualize the first feature map of layer1_0 activations
+            feature_map = activations['layer1_0'][0][0].cpu().numpy()  # Indexing: [batch, feature_map, :, :]
+            plt.imshow(feature_map, cmap='hot')
+            plt.colorbar()
+            plt.show()
 
-        feature_map = activations['layer2_0'][0][0].cpu().numpy()  # Indexing: [batch, feature_map, :, :]
-        plt.imshow(feature_map, cmap='hot')
-        plt.colorbar()
-        plt.show()
+            feature_map = activations['layer2_0'][0][0].cpu().numpy()  # Indexing: [batch, feature_map, :, :]
+            plt.imshow(feature_map, cmap='hot')
+            plt.colorbar()
+            plt.show()
 
     datadis = [0] * 6
     labels_distr = [[0] * 6 for _ in range(6)]  # stores every prediction made, arranged by class

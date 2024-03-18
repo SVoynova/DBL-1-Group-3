@@ -1,6 +1,7 @@
 from dc1.batch_sampler import BatchSampler
 from dc1.image_dataset import ImageDataset
 from dc1.net import Net
+from dc1.softmaxOutputDemo import print_images_with_probabilities
 from dc1.train_test import train_model, test_model
 import train_test
 
@@ -38,9 +39,9 @@ def main(args: argparse.Namespace, activeloop: bool = True) -> None:
     # and False for test data. If no 'labels_for_augmentation' is specified but augmentation is enabled,
     # apply augmentation to all classes.
     train_dataset = ImageDataset(Path("../data/X_train.npy"),
-                                 Path("../data/Y_train.npy"), False)
+                                 Path("../data/Y_train.npy"), False, False, [0, 1, 2, 3, 4, 5])
     test_dataset = ImageDataset(Path("../data/X_test.npy"),
-                                Path("../data/Y_test.npy"), False)
+                                Path("../data/Y_test.npy"), False, False, [0, 1, 2, 3, 4, 5])
 
     # Initialize the Neural Net with the number of distinct labels
     model = Net(n_classes=6)
@@ -48,17 +49,17 @@ def main(args: argparse.Namespace, activeloop: bool = True) -> None:
     # Initialize optimizer and loss function - original params: lr=0.001, momentum=0.1
     #optimizer = optim.SGD(model.parameters(), lr=0.005, momentum=0.1)
 
-    optimizer = AdamW(model.parameters(), lr=0.01)  # AdamW requires a lower LR generally
+    optimizer = AdamW(model.parameters(), lr=0.005)  # AdamW requires a lower LR generally
 
     # Define a scheduler as before
-    scheduler = StepLR(optimizer, step_size=10, gamma=0.1)
+    scheduler = StepLR(optimizer, step_size=30, gamma=0.1)
 
     #    loss_function = nn.CrossEntropyLoss()
 
     #Modified loss function to compensate for class imbalances
-#    class_weights = torch.tensor([2.42, 2.63, 2.06, 1.0, 3.74, 4.69], dtype=torch.float)
-    class_weights = torch.tensor([2., 2., 2, 1.0, 3, 4], dtype=torch.float)
-
+    class_weights = torch.tensor([2, 2, 2, 1.0, 3, 4], dtype=torch.float)
+    #class_weights = torch.tensor([2., 2.5, 2, 1.4, 4, 4.8], dtype=torch.float)
+    #class_weights = torch.tensor([1., 1., 1, 1.0, 1, 1], dtype=torch.float)
     # If you're using a GPU, ensure to transfer the weights to the same device as your model and data
     if torch.cuda.is_available():
         class_weights = class_weights.to('cuda')
@@ -109,6 +110,9 @@ def main(args: argparse.Namespace, activeloop: bool = True) -> None:
     # Plot overall loss and accuracy, and ROC curve for model evaluation
     metrics_logger.plot_loss_and_accuracy(n_epochs)
     metrics_logger.plot_roc_curve(n_epochs, train_test)
+    # SoftMax Demo
+    #print_images_with_probabilities(model, test_dataset, device)
+
 
 def setup_model_device(model, DEBUG):
     """
@@ -132,15 +136,16 @@ def setup_model_device(model, DEBUG):
         device = "cpu"
         # Creating a summary of our model and its layers:
         summary(model, (1, 128, 128), device=device)
+
     return model, device
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
     parser.add_argument(
-        "--nb_epochs", help="number of training iterations", default=15, type=int
+        "--nb_epochs", help="number of training iterations", default=1, type=int
     )
-    parser.add_argument("--batch_size", help="batch_size", default=32, type=int)
+    parser.add_argument("--batch_size", help="batch_size", default=50, type=int)
     parser.add_argument(
         "--balanced_batches",
         help="whether to balance batches for class labels",
@@ -150,4 +155,6 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     main(args)
+
+
 
