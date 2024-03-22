@@ -6,7 +6,6 @@ from dc1.train_test import train_model, test_model
 import train_test
 
 # Torch imports
-
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -27,9 +26,12 @@ import os
 
 # Utility class for the evaluation metric things
 from evaluationMetricUtility import EvaluationMettricsLogger
-matplotlib.use('TkAgg')
 from torch.optim import AdamW
 from torch.optim.lr_scheduler import StepLR
+
+from MCDropout import MCDropoutAnalysis
+
+matplotlib.use('TkAgg')
 
 def main(args: argparse.Namespace, activeloop: bool = True) -> None:
 
@@ -43,23 +45,35 @@ def main(args: argparse.Namespace, activeloop: bool = True) -> None:
     test_dataset = ImageDataset(Path("../data/X_test.npy"),
                                 Path("../data/Y_test.npy"), False, False, [0, 1, 2, 3, 4, 5])
 
+    MonteCarlo = False
+
     # Initialize the Neural Net with the number of distinct labels
-    model = Net(n_classes=6)
+    #Depth determins the number of layers employed, MCd to True for Monte Carlo Dropout
+    model = Net(n_classes=6,  depth = 3, MCd = MonteCarlo)
+
+    #LOAD WEIGHTS OF SAVED MODEL
+    model.load_state_dict(torch.load("../dc1/SAVED_MODEL_V2.pth"))
 
     # Initialize optimizer and loss function - original params: lr=0.001, momentum=0.1
     #optimizer = optim.SGD(model.parameters(), lr=0.005, momentum=0.1)
 
-    optimizer = AdamW(model.parameters(), lr=0.005)  # AdamW requires a lower LR generally
+    optimizer = AdamW(model.parameters(), lr=0.0015)  # AdamW requires a lower LR generally
 
     # Define a scheduler as before
-    scheduler = StepLR(optimizer, step_size=30, gamma=0.1)
+    scheduler = StepLR(optimizer, step_size=5, gamma=0.1)
 
     #    loss_function = nn.CrossEntropyLoss()
-
     #Modified loss function to compensate for class imbalances
-    class_weights = torch.tensor([2, 2, 2, 1.0, 3, 4], dtype=torch.float)
+    #class_weights = torch.tensor([2, 2, 2, 1.0, 3, 4], dtype=torch.float)
+
+
+
     #class_weights = torch.tensor([2., 2.5, 2, 1.4, 4, 4.8], dtype=torch.float)
-    #class_weights = torch.tensor([1., 1., 1, 1.0, 1, 1], dtype=torch.float)
+
+
+
+    class_weights = torch.tensor([1, 1, 1, 1, 1, 1], dtype=torch.float)
+
     # If you're using a GPU, ensure to transfer the weights to the same device as your model and data
     if torch.cuda.is_available():
         class_weights = class_weights.to('cuda')
@@ -90,28 +104,48 @@ def main(args: argparse.Namespace, activeloop: bool = True) -> None:
     # Instantiate EvaluationMetricsLogger for logging and plotting metrics
     metrics_logger = EvaluationMettricsLogger()
 
+    softmaxList = []
+
     # Loop over epochs to train and test the model, logging the metrics
     for e in range(n_epochs):
         if activeloop:
-            metrics_logger.log_training_epochs(e, model, train_sampler, optimizer, loss_function, device)
+            metrics_logger.log_training_epochs(e, model, train_sampler, optimizer, loss_function, device, MCd=False)
             metrics_logger.log_testing_epochs(e, model, test_sampler, loss_function, device)
-
+            if MonteCarlo:
+                avg = metrics_logger.log_testing_epochs(e, model, test_sampler, loss_function, device)
+                softmaxList.append(avg)
             # Plots the both training and the testing losses of the logged model
-            metrics_logger.plot_training_testing_losses()
+            metrics_logger.plot_training_testing_losses(MCd = False)
             scheduler.step()
 
 
     if not Path("model_weights/").exists():
         os.mkdir(Path("model_weights/"))
 
+    if MonteCarlo:
+        analysis = MCDropoutAnalysis(softmaxList)
+        # To print statistics
+        analysis.print_statistics()
+        # To plot the probability distributions
+        analysis.plot_probability_distributions()
+        # To plot the trend analysis
+        analysis.plot_trend_analysis()
+
     # Saves the model
     metrics_logger.save_model(model, n_epochs, batch_size)
 
     # Plot overall loss and accuracy, and ROC curve for model evaluation
-    metrics_logger.plot_loss_and_accuracy(n_epochs)
-    metrics_logger.plot_roc_curve(n_epochs, train_test)
+    # RE-ADD AFTER
+    #metrics_logger.plot_loss_and_accuracy(n_epochs)
+    #metrics_logger.plot_roc_curve(n_epochs, train_test)
+
     # SoftMax Demo
     #print_images_with_probabilities(model, test_dataset, device)
+
+    #SAVES MODEL WEIGHTS OF FINAL EPOCH
+    #torch.save(model.state_dict(), 'SAVED_MODEL.pth')
+    #torch.save(model.state_dict(), 'SAVED_MODEL_V2.pth')
+
 
 
 def setup_model_device(model, DEBUG):
@@ -137,13 +171,14 @@ def setup_model_device(model, DEBUG):
         # Creating a summary of our model and its layers:
         summary(model, (1, 128, 128), device=device)
 
+
     return model, device
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
     parser.add_argument(
-        "--nb_epochs", help="number of training iterations", default=20, type=int
+        "--nb_epochs", help="number of training iterations", default=4, type=int
     )
     parser.add_argument("--batch_size", help="batch_size", default=50, type=int)
     parser.add_argument(
@@ -151,7 +186,7 @@ if __name__ == "__main__":
         help="whether to balance batches for class labels",
         action='store_true'
     )
-    parser.set_defaults(balanced_batches=False)
+    parser.set_defaults(balanced_batches=True)
     args = parser.parse_args()
 
     main(args)

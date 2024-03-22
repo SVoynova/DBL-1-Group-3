@@ -23,24 +23,25 @@ class EvaluationMettricsLogger:
         self.now_time = datetime.now()
         self.labels_distr_test = []
 
-    def log_training_epochs(self, epoch: int, model, train_sampler, optimizer, loss_function, device):
-        # Log training metrics for each epoch
-        train_losses, train_acc, train_prec, train_rec, labels_distr, datadis = train_model(model, train_sampler,optimizer, loss_function, device)
-        self.accuracies_train.append(train_acc)
-        self.precisions_train.append(train_prec)
-        self.recalls_train.append(train_rec)
+    def log_training_epochs(self, epoch: int, model, train_sampler, optimizer, loss_function, device, MCd: bool = False):
+        if not MCd:
+            # Log training metrics for each epoch
+            train_losses, train_acc, train_prec, train_rec, labels_distr, datadis = train_model(model, train_sampler,optimizer, loss_function, device)
+            self.accuracies_train.append(train_acc)
+            self.precisions_train.append(train_prec)
+            self.recalls_train.append(train_rec)
 
-        mean_loss = sum(train_losses) / len(train_losses)
-        self.mean_losses_train.append(mean_loss)
+            mean_loss = sum(train_losses) / len(train_losses)
+            self.mean_losses_train.append(mean_loss)
 
-        verbose = True
-        if verbose == True:
-            self._print_metrics(epoch, mean_loss, train_acc, train_prec, train_rec, labels_distr, datadis, train=True)
+            verbose = True
+            if verbose == True:
+                self._print_metrics(epoch, mean_loss, train_acc, train_prec, train_rec, labels_distr, datadis, train=True)
 
     def log_testing_epochs(self, epoch: int, model, test_sampler, loss_function, device):
         # Log testing metrics for each epoch, including ROC AUC
-        test_losses, test_acc, test_prec, test_rec, roc_auc_dict, labels_distr, datadis = test_model(model, test_sampler, loss_function,device)
-        print(f"ROC AUC dict for epoch {epoch + 1}: {roc_auc_dict}")
+        test_losses, test_acc, test_prec, test_rec, roc_auc_dict, labels_distr, datadis, overall_avg = test_model(model, test_sampler, loss_function,device)
+        #print(f"ROC AUC dict for epoch {epoch + 1}: {roc_auc_dict}")
         self.roc_auc_data.append(roc_auc_dict)
         self.accuracies_test.append(test_acc)
         self.precisions_test.append(test_prec)
@@ -54,14 +55,17 @@ class EvaluationMettricsLogger:
         if verbose == True:
             self._print_metrics(epoch, mean_loss, test_acc, test_prec, test_rec, labels_distr, datadis, train=False)
 
-    def plot_training_testing_losses(self):
-        # Plot scatter of training and testing losses using plotext
-        plotext.clf()
-        plotext.scatter(self.mean_losses_train, label="Train Loss")
-        plotext.scatter(self.mean_losses_test, label="Test Loss")
-        plotext.title("Train and Test Loss")
-        plotext.xticks([i for i in range(len(self.mean_losses_train) + 1)])
-        plotext.show()
+        return overall_avg
+
+    def plot_training_testing_losses(self,MCd: bool = False):
+        if not MCd:
+            # Plot scatter of training and testing losses using plotext
+            plotext.clf()
+            plotext.scatter(self.mean_losses_train, label="Train Loss")
+            plotext.scatter(self.mean_losses_test, label="Test Loss")
+            plotext.title("Train and Test Loss")
+            plotext.xticks([i for i in range(len(self.mean_losses_train) + 1)])
+            plotext.show()
 
     def plot_loss_and_accuracy(self, epochs):
         # Plot training and testing losses and accuracies over epochs

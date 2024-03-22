@@ -6,7 +6,8 @@ import torch
 from collections import Counter
 
 train_dataset = ImageDataset(Path("../data/X_train.npy"),
-                             Path("../data/Y_train.npy"))
+                             Path("../data/Y_train.npy"), False, False, [0, 1, 2, 3, 4, 5])
+
 
 label_counts = Counter(train_dataset.targets)
 label_counts_dict = dict(label_counts)

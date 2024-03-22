@@ -71,6 +71,7 @@ def train_model(
         all_predictions.extend(predicted.cpu().numpy())  # Store predictions
         all_labels.extend(y.cpu().numpy())  # Store true labels
 
+
         # We first need to make sure we reset our optimizer at the start.
         # We want to learn from each batch seperately,
         # not from the entire dataset at once.
@@ -113,6 +114,8 @@ def test_model(
     all_probabilities = []
     last_image = None
 
+    #Softmax output store for MC dropout
+    softmaxLis = []
 
     # Register hook for the layers you're interested in
     printHeatmap = False
@@ -130,7 +133,10 @@ def test_model(
             y = y.to(device)
             prediction = model.forward(x)
 
-#            prediction = model(x)  # Forward pass
+            #For MC-Dropout, storing average of Softmax per batch
+            average_prediction = torch.mean(prediction, dim=0)
+            softmaxLis.append(average_prediction)
+
             loss = loss_function(prediction, y)
             losses.append(loss)
 
@@ -215,7 +221,11 @@ def test_model(
     #     plt.colorbar()
     #     plt.show()
 
-    return losses, binary_accuracy, binary_precision, binary_recall, roc_auc_dict, labels_distr,datadis
+    #For MC-Dropout, takes average over entire batch
+    softmax_tensor = torch.stack(softmaxLis)
+    overall_average = torch.mean(softmax_tensor, dim=0)
+
+    return losses, binary_accuracy, binary_precision, binary_recall, roc_auc_dict, labels_distr,datadis,overall_average
 
 
 def get_activation(name):
