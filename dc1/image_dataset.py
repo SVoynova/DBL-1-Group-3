@@ -9,6 +9,7 @@ import os
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
 import math
 
+
 class ImageDataset:
     """
     Creates a DataSet from numpy arrays while keeping the data
@@ -29,9 +30,13 @@ class ImageDataset:
       to no images. Only effective if {@code augment} is True.
     """
 
-    def __init__(self, x: Path, y: Path, balance_dataset, augment, labels_for_augmentation= None) -> None:
+    def __init__(self, x: Path, y: Path, balance_dataset, augment, is_validation=False, split_ratio=0.2,
+                 labels_for_augmentation=None) -> None:
         self.targets = np.load(y)
         self.imgs = np.load(x)
+
+        # if is_validation:
+        #     self.imgs, self.targets = self.split_validation_set(split_ratio)
 
         # Augmentation flag (set in the constructor)
         self.augment = augment
@@ -41,11 +46,10 @@ class ImageDataset:
         if self.augment and self.labels_for_augmentation is None:
             self.labels_for_augmentation = [0, 1, 2, 3, 4, 5]
 
-
         if balance_dataset:
             # Augmentation is true, and augment all the labels
             self.augment = True
-            #self.labels_for_augmentation = [0, 1, 2, 4, 5, 6]
+            self.labels_for_augmentation = [0, 1, 2, 4, 5, 6]
 
             new_img = []
             new_label = []
@@ -60,7 +64,7 @@ class ImageDataset:
                     label_counts[label] = math.floor(ratio) - (1 if label in [0, 2] else 0)
             a = [[label, count] for label, count in label_counts.items()]
 
-            #print(a)
+            # print(a)
 
             add = 0
             for k in range(len(self.targets)):
@@ -70,7 +74,7 @@ class ImageDataset:
                     for i in range(a[self.targets[k]][1]):
                         new_img.insert(k + add, self.imgs[k])
                         new_label.insert(k + add, self.targets[k])
-                        add+=1
+                        add += 1
 
             self.targets = np.array(new_label)
             self.imgs = np.array(new_img)
@@ -82,12 +86,13 @@ class ImageDataset:
                 samplewise_std_normalization=True,
                 horizontal_flip=True,
                 vertical_flip=False,
-                height_shift_range=0.05,
-                width_shift_range=0.1,
-                rotation_range=5,
-                shear_range=0.1,
+                height_shift_range=0.01,
+                width_shift_range=0.02,
+                rotation_range=2,
+                shear_range=0.01,
                 fill_mode='reflect',
-                zoom_range=0.15)
+                zoom_range=0.05)
+
             # Fit the data generator to the images for augmentation
             self.datagen.fit(self.imgs)
 
@@ -106,6 +111,26 @@ class ImageDataset:
             image = np.transpose(image, (2, 0, 1))
         image = torch.from_numpy(image / 255).float()  # Normalize and convert to tensor
         return image, label
+
+    @staticmethod
+    def split_validation_set(self, split_ratio):
+
+        total_samples = len(self.targets)
+        num_val_samples = int(total_samples * split_ratio)
+
+        # shuffle before splitting
+        indices = np.arange(total_samples)
+        np.random.shuffle(indices)
+        val_indices = indices[:num_val_samples]
+        train_indices = indices[num_val_samples:]
+
+        # split the data
+        val_imgs = self.imgs[val_indices]
+        val_targets = self.targets[val_indices]
+        self.imgs = self.imgs[train_indices]
+        self.targets = self.targets[train_indices]
+
+        return val_imgs, val_targets
 
     @staticmethod
     def load_numpy_arr_from_npy(path: Path) -> np.ndarray:
@@ -137,6 +162,7 @@ def load_numpy_arr_from_url(url: str) -> np.ndarray:
     response.raise_for_status()
 
     return np.load(io.BytesIO(response.content))
+
 
 if __name__ == "__main__":
     cwd = os.getcwd()

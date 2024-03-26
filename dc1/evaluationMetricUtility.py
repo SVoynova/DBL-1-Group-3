@@ -54,6 +54,48 @@ class EvaluationMettricsLogger:
         if verbose == True:
             self._print_metrics(epoch, mean_loss, test_acc, test_prec, test_rec, labels_distr, datadis, train=False)
 
+    def validation_accuracies_per_class(self, model, validation_dataset, device):
+        "This method is used in validate_and_adjust_weights"
+        model.eval()
+        class_correct = [0] * 6
+        class_total = [0] * 6
+        with torch.no_grad():
+            # Assuming validation_dataset can directly be iterated over;
+            # otherwise, wrap it with a DataLoader
+            for images, labels in validation_dataset:
+                images, labels = images.to(device), labels.to(device)
+                outputs = model(images)
+                _, predicted = torch.max(outputs, 1)
+                for i in range(labels.size(0)):
+                    label = labels[i]
+                    class_correct[label] += (predicted[i] == label).item()
+                    class_total[label] += 1
+        accuracies = [class_correct[i] / class_total[i] for i in range(6)]
+        return accuracies
+
+    def adjust_class_weights(self, current_weights, accuracies, adjustment_factor=0.75):
+        "This method is used in validate_and_adjust_weights"
+        adjusted_weights = torch.tensor([(1.0 - acc) ** adjustment_factor for acc in accuracies], dtype=torch.float)
+        adjusted_weights = adjusted_weights / torch.min(adjusted_weights) * current_weights
+        return adjusted_weights
+
+    def validate_and_adjust_weights(self, epoch, model, validation_dataset, device, current_weights,
+                                    adjustment_factor=1.0):
+        "Úses the validation set to tune class weights according to the logic in adjust class weights."
+        # Perform validation to calculate accuracies
+        validation_accuracies = self.validation_accuracies_per_class(model, validation_dataset, device)
+
+        # Adjust class weights based on validation accuracies
+        adjusted_weights = self.adjust_class_weights(current_weights, validation_accuracies, adjustment_factor)
+        if torch.cuda.is_available():
+            adjusted_weights = adjusted_weights.to(device)
+
+        # Print the adjusted class weights for this epoch
+        print(
+            f"Epoch {epoch + 1}: Adjusted Class Weights: {adjusted_weights.tolist()}")  # Convert to list for readability
+
+        return adjusted_weights
+
     def plot_training_testing_losses(self):
         # Plot scatter of training and testing losses using plotext
         plotext.clf()

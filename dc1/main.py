@@ -27,27 +27,37 @@ import os
 
 # Utility class for the evaluation metric things
 from evaluationMetricUtility import EvaluationMettricsLogger
+
 matplotlib.use('TkAgg')
 from torch.optim import AdamW
 from torch.optim.lr_scheduler import StepLR
 
-def main(args: argparse.Namespace, activeloop: bool = True) -> None:
 
+def main(args: argparse.Namespace, activeloop: bool = True) -> None:
     # Load the train and test datasets. Enable data augmentation by setting the augmentation flag to True.
     # The second 'False' refers to the augmentation flag (set to True to enable augmentation).
     # The first 'False' addresses class imbalance; it should be set to True for training data to handle imbalance,
     # and False for test data. If no 'labels_for_augmentation' is specified but augmentation is enabled,
     # apply augmentation to all classes.
-    train_dataset = ImageDataset(Path("../data/X_train.npy"),
-                                 Path("../data/Y_train.npy"), False, False, [0, 1, 2, 3, 4, 5])
-    test_dataset = ImageDataset(Path("../data/X_test.npy"),
-                                Path("../data/Y_test.npy"), False, False, [0, 1, 2, 3, 4, 5])
+
+    #
+    adjust_class_weights = False  # Set this to true to enable class weights adjustment using the validation set
+
+    # For training dataset
+    train_dataset = ImageDataset(Path("../data/X_train.npy"), Path("../data/Y_train.npy"), False, False,
+                                 [0, 1, 2, 3, 4, 5])
+    # For validation dataset
+    validation_dataset = ImageDataset(Path("../data/X_train.npy"), Path("../data/Y_train.npy"), True, False,
+                                      is_validation=True, split_ratio=0.1)
+    # Test dataset remains the same
+    test_dataset = ImageDataset(Path("../data/X_test.npy"), Path("../data/Y_test.npy"), False, False,
+                                [0, 1, 2, 3, 4, 5])
 
     # Initialize the Neural Net with the number of distinct labels
     model = Net(n_classes=6)
 
     # Initialize optimizer and loss function - original params: lr=0.001, momentum=0.1
-    #optimizer = optim.SGD(model.parameters(), lr=0.005, momentum=0.1)
+    # optimizer = optim.SGD(model.parameters(), lr=0.005, momentum=0.1)
 
     optimizer = AdamW(model.parameters(), lr=0.005)  # AdamW requires a lower LR generally
 
@@ -56,10 +66,11 @@ def main(args: argparse.Namespace, activeloop: bool = True) -> None:
 
     #    loss_function = nn.CrossEntropyLoss()
 
-    #Modified loss function to compensate for class imbalances
-    class_weights = torch.tensor([2, 2, 2, 1.0, 3, 4], dtype=torch.float)
-    #class_weights = torch.tensor([2., 2.5, 2, 1.4, 4, 4.8], dtype=torch.float)
-    #class_weights = torch.tensor([1., 1., 1, 1.0, 1, 1], dtype=torch.float)
+    # Modified loss function to compensate for class imbalances
+    # class_weights = torch.tensor([0.8, 2.06, 2.42, 2.63, 3.74, 4.69], dtype=torch.float)
+    # class_weights = torch.tensor([2, 2, 2, 1.0, 3, 4], dtype=torch.float)
+    class_weights = torch.tensor([2., 2, 2, 1, 3, 4], dtype=torch.float)
+    # class_weights = torch.tensor([1., 1., 1, 1.0, 1, 1], dtype=torch.float)
     # If you're using a GPU, ensure to transfer the weights to the same device as your model and data
     if torch.cuda.is_available():
         class_weights = class_weights.to('cuda')
@@ -83,6 +94,12 @@ def main(args: argparse.Namespace, activeloop: bool = True) -> None:
     train_sampler = BatchSampler(
         batch_size=batch_size, dataset=train_dataset, balanced=args.balanced_batches
     )
+
+    validation_sampler = BatchSampler(
+        batch_size=args.batch_size, dataset=validation_dataset, balanced=args.balanced_batches
+        # Assuming balanced=False disables balancing
+    )
+
     test_sampler = BatchSampler(
         batch_size=100, dataset=test_dataset, balanced=args.balanced_batches
     )
@@ -94,12 +111,18 @@ def main(args: argparse.Namespace, activeloop: bool = True) -> None:
     for e in range(n_epochs):
         if activeloop:
             metrics_logger.log_training_epochs(e, model, train_sampler, optimizer, loss_function, device)
+
+            if adjust_class_weights:
+                # Update class weights based on validation
+                class_weights = metrics_logger.validate_and_adjust_weights(e, model, validation_sampler, device,
+                                                                           class_weights, adjustment_factor=1.0)
+                # Update the loss function with new class weights
+                loss_function = nn.CrossEntropyLoss(weight=class_weights)
+
             metrics_logger.log_testing_epochs(e, model, test_sampler, loss_function, device)
 
-            # Plots the both training and the testing losses of the logged model
             metrics_logger.plot_training_testing_losses()
             scheduler.step()
-
 
     if not Path("model_weights/").exists():
         os.mkdir(Path("model_weights/"))
@@ -111,7 +134,7 @@ def main(args: argparse.Namespace, activeloop: bool = True) -> None:
     metrics_logger.plot_loss_and_accuracy(n_epochs)
     metrics_logger.plot_roc_curve(n_epochs, train_test)
     # SoftMax Demo
-    #print_images_with_probabilities(model, test_dataset, device)
+    # print_images_with_probabilities(model, test_dataset, device)
 
 
 def setup_model_device(model, DEBUG):
@@ -139,6 +162,7 @@ def setup_model_device(model, DEBUG):
 
     return model, device
 
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
@@ -155,6 +179,3 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     main(args)
-
-
-
