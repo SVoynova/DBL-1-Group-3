@@ -6,9 +6,11 @@ import matplotlib.pyplot as plt
 from dc1.train_test import train_model, test_model, label_names
 from pathlib import Path
 from datetime import datetime
+import numpy as np
+from netcal.metrics import ECE
+from netcal.presentation import ReliabilityDiagram
 
-
-class EvaluationMettricsLogger:
+class EvaluationMetricsLogger:
     def __init__(self):
         # Initialize lists to store metrics for training and testing
         self.mean_losses_train: List[torch.Tensor] = []
@@ -16,10 +18,14 @@ class EvaluationMettricsLogger:
         self.accuracies_train, self.precisions_train, self.recalls_train = [], [], []
         self.accuracies_test, self.precisions_test, self.recalls_test = [], [], []
 
-        # Initialize list to store ROC AUC data
+        # Initialize lists to store prediction probabilities and true labels for the test set
+        self.pred_probs_test = []  # This will store the softmax probabilities for ECE calculation
+        self.true_labels_test = []  # This will store the true labels for ECE calculation
+
+        # Initialize list to store ROC AUC data and other properties
         self.roc_auc_data = []
         self.min_mean_loss_train = None
-        self.min_mean_loss_train = None
+        self.min_mean_loss_test = None
         self.now_time = datetime.now()
         self.labels_distr_test = []
 
@@ -39,7 +45,8 @@ class EvaluationMettricsLogger:
 
     def log_testing_epochs(self, epoch: int, model, test_sampler, loss_function, device):
         # Log testing metrics for each epoch, including ROC AUC
-        test_losses, test_acc, test_prec, test_rec, roc_auc_dict, labels_distr, datadis = test_model(model, test_sampler, loss_function,device)
+        # Extended to capture prediction probabilities and true labels
+        test_losses, test_acc, test_prec, test_rec, roc_auc_dict, labels_distr, datadis, pred_probs, true_labels = test_model(model, test_sampler, loss_function, device)
         print(f"ROC AUC dict for epoch {epoch + 1}: {roc_auc_dict}")
         self.roc_auc_data.append(roc_auc_dict)
         self.accuracies_test.append(test_acc)
@@ -50,9 +57,26 @@ class EvaluationMettricsLogger:
 
         self.labels_distr_test.append(labels_distr)
 
+        # Extend it to capture prediction probabilities and true labels
+        # Assuming test_losses, test_acc, test_prec, test_rec, roc_auc_dict are returned by test_model
+        # and now it also returns pred_probs and true_labels for each epoch
+        # test_losses, test_acc, test_prec, test_rec, roc_auc_dict, labels_distr, datadis, pred_probs, true_labels = test_model(model, test_sampler, loss_function, device)
+
+        # Store prediction probabilities and true labels
+        self.pred_probs_test.extend(pred_probs)
+        self.true_labels_test.extend(true_labels)
+
+
         verbose = True
         if verbose == True:
             self._print_metrics(epoch, mean_loss, test_acc, test_prec, test_rec, labels_distr, datadis, train=False)
+
+            """# Plot the reliability diagram - uncomment to track changes with each testing epoch
+            pred_probs_flat = np.vstack(self.pred_probs_test)
+            true_labels_flat = np.array(self.true_labels_test)
+            diagram = ReliabilityDiagram(15)
+            diagram.plot(pred_probs_flat, true_labels_flat)
+            plt.show()"""
 
     def validation_accuracies_per_class(self, model, validation_dataset, device):
         "This method is used in validate_and_adjust_weights"
@@ -205,6 +229,23 @@ class EvaluationMettricsLogger:
                             # Print count as before
                             print(f'- {count} incorrect guessed disease {j} ({label_names[j]})')
             print()
+
+    def calculate_and_log_ece(self, n_bins=15):
+        # Assuming pred_probs_test is a list of numpy arrays, each with shape (n_classes,)
+        pred_probs_flat = np.vstack(self.pred_probs_test)
+
+        # Since true_labels_test is a list of numpy.int64 (scalars), directly convert it to a numpy array
+        true_labels_flat = np.array(self.true_labels_test)
+
+        # Instantiate the ECE metric with the desired number of bins
+        ece_metric = ECE(n_bins)
+
+        # The ECE `measure` method expects true class labels as integers and predicted probabilities
+        ece_value = ece_metric.measure(pred_probs_flat, true_labels_flat)
+
+        print(f"Expected Calibration Error (ECE) before calibration: {ece_value}")
+
+
 
     # def perform_grid_search():
     #     epoch_range = [5, 10, 15]

@@ -1,10 +1,14 @@
+import numpy as np
+from torch.utils.data import DataLoader
+
 from dc1.batch_sampler import BatchSampler
 from dc1.image_dataset import ImageDataset
 from dc1.net import Net
 from dc1.softmaxOutputDemo import print_images_with_probabilities
+from dc1.temperature_scaling import TemperatureScaling
 from dc1.train_test import train_model, test_model
 import train_test
-
+import calibrate_model
 # Torch imports
 
 import torch
@@ -26,7 +30,7 @@ from typing import List
 import os
 
 # Utility class for the evaluation metric things
-from evaluationMetricUtility import EvaluationMettricsLogger
+from evaluationMetricUtility import EvaluationMetricsLogger
 
 matplotlib.use('TkAgg')
 from torch.optim import AdamW
@@ -78,7 +82,7 @@ def main(args: argparse.Namespace, activeloop: bool = True) -> None:
     loss_function = nn.CrossEntropyLoss(weight=class_weights)
 
     # Fetch epoch and batch count from arguments
-    n_epochs = args.nb_epochs
+    n_epochs = 1 #args.nb_epochs
     batch_size = args.batch_size
 
     # IMPORTANT! Set this to True to see actual errors regarding
@@ -105,7 +109,16 @@ def main(args: argparse.Namespace, activeloop: bool = True) -> None:
     )
 
     # Instantiate EvaluationMetricsLogger for logging and plotting metrics
-    metrics_logger = EvaluationMettricsLogger()
+    metrics_logger = EvaluationMetricsLogger()
+
+    if torch.cuda.is_available():
+        class_weights = class_weights.to('cuda')
+    elif torch.backends.mps.is_available():
+        class_weights = class_weights.to('mps')  # Ensure class weights are also moved to MPS
+    else:
+        class_weights = class_weights.to('cpu')
+    loss_function = nn.CrossEntropyLoss(weight=class_weights)
+
 
     # Loop over epochs to train and test the model, logging the metrics
     for e in range(n_epochs):
@@ -124,6 +137,7 @@ def main(args: argparse.Namespace, activeloop: bool = True) -> None:
             metrics_logger.plot_training_testing_losses()
             scheduler.step()
 
+
     if not Path("model_weights/").exists():
         os.mkdir(Path("model_weights/"))
 
@@ -133,8 +147,17 @@ def main(args: argparse.Namespace, activeloop: bool = True) -> None:
     # Plot overall loss and accuracy, and ROC curve for model evaluation
     metrics_logger.plot_loss_and_accuracy(n_epochs)
     metrics_logger.plot_roc_curve(n_epochs, train_test)
+
+    model.eval()
+
+    # Calculate ECE before calibration
+    metrics_logger.calculate_and_log_ece()
+
+    # Calibrate model using optimal temperature scaling and evaluate
+    opt_temperature = calibrate_model.calibrate_evaluate(model, validation_sampler, test_dataset, device)
+
     # SoftMax Demo
-    # print_images_with_probabilities(model, test_dataset, device)
+    #print_images_with_probabilities(model, test_dataset, device, opt_temperature)
 
 
 def setup_model_device(model, DEBUG):
@@ -148,9 +171,7 @@ def setup_model_device(model, DEBUG):
         model.to(device)
         # Creating a summary of our model and its layers:
         summary(model, (1, 128, 128), device=device)
-    elif (
-            torch.backends.mps.is_available() and not DEBUG
-    ):  # PyTorch supports Apple Silicon GPU's from version 1.12
+    elif torch.backends.mps.is_available() and not DEBUG:  # PyTorch supports Apple Silicon GPU's from version 1.12
         print("@@@ Apple silicon device enabled, training with Metal backend...")
         device = "mps"
         model.to(device)
