@@ -53,6 +53,7 @@ def train_model(
     all_predictions = []
     all_labels = []
 
+
     # Put the model in train mode:
     model.train()
 
@@ -66,6 +67,7 @@ def train_model(
         predictions = model.forward(x)
         loss = loss_function(predictions, y)
         losses.append(loss)
+
 
         _, predicted = torch.max(predictions.data, 1)  # Get predictions
         all_predictions.extend(predicted.cpu().numpy())  # Store predictions
@@ -137,6 +139,8 @@ def test_model(
             average_prediction = torch.mean(prediction, dim=0)
             softmaxLis.append(average_prediction)
 
+
+            #            prediction = model(x)  # Forward pass
             loss = loss_function(prediction, y)
             losses.append(loss)
 
@@ -145,6 +149,7 @@ def test_model(
             all_probabilities.extend(probabilities.cpu().numpy())
             all_predictions.extend(predicted.cpu().numpy())  # Store predictions
             all_labels.extend(y.cpu().numpy())  # Store true labels
+
 
             last_image = x[-1]  # Save the last image processed
 
@@ -225,7 +230,11 @@ def test_model(
     softmax_tensor = torch.stack(softmaxLis)
     overall_average = torch.mean(softmax_tensor, dim=0)
 
-    return losses, binary_accuracy, binary_precision, binary_recall, roc_auc_dict, labels_distr,datadis,overall_average
+#    return losses, binary_accuracy, binary_precision, binary_recall, roc_auc_dict, labels_distr,datadis,overall_average
+
+
+    return losses, binary_accuracy, binary_precision, binary_recall, roc_auc_dict, labels_distr, datadis, all_probabilities, all_labels
+    #return losses, binary_accuracy, binary_precision, binary_recall, roc_auc_dict, labels_distr, datadis
 
 
 def get_activation(name):
@@ -243,3 +252,69 @@ def visualize_activations(activations):
         plt.imshow(act, cmap='hot')
         plt.colorbar()
         plt.show()
+
+
+def test_calibrated_model(
+        model: Net,
+        test_sampler: BatchSampler,
+        loss_function: Callable[..., torch.Tensor],
+        device: str,
+) -> tuple[list[Tensor], float, Any, Any, dict[str, float]]:
+    # Setting the model to evaluation mode:
+    model.eval()
+    losses = []
+    all_predictions = []
+    all_labels = []
+    all_probabilities = []
+    last_image = None
+
+
+    # We need to make sure we do not update our model based on the test data:
+    with torch.no_grad():
+        for (x, y) in tqdm(test_sampler):
+            activations.clear()
+            # Making sure our samples are stored on the same device as our model:
+            x = x.to(device)
+            y = y.to(device)
+            prediction = model.forward(x)
+
+            #            prediction = model(x)  # Forward pass
+            loss = loss_function(prediction, y)
+            losses.append(loss)
+
+            _, predicted = torch.max(prediction.data, 1)  # Get predictions
+            probabilities = torch.nn.functional.softmax(prediction, dim=1)
+            all_probabilities.extend(probabilities.cpu().numpy())
+            all_predictions.extend(predicted.cpu().numpy())  # Store predictions
+            all_labels.extend(y.cpu().numpy())  # Store true labels
+
+            last_image = x[-1]  # Save the last image processed
+
+
+    datadis = [0] * 6
+    labels_distr = [[0] * 6 for _ in range(6)]  # stores every prediction made, arranged by class
+    for i in range(len(all_predictions)):
+        if all_predictions[i] == all_labels[i]:
+            labels_distr[all_labels[i]][all_labels[i]] += 1
+        else:
+            labels_distr[all_labels[i]][all_predictions[i]] += 1
+        datadis[all_labels[i]] += 1
+
+    all_probabilities = np.array(all_probabilities)
+    all_labels = np.array(all_labels)
+    roc_auc_dict = {}
+    num_classes = 6
+    for i in range(num_classes):
+        # Compute ROC curve and ROC area for each class
+        fpr, tpr, _ = roc_curve(all_labels == i, all_probabilities[:, i])
+        roc_auc = auc(fpr, tpr)
+        roc_auc_dict[label_names[i]] = roc_auc
+
+    binary_all_labels = transform_labels(all_labels)
+    binary_all_predictions = transform_labels(all_predictions)
+
+    binary_accuracy = accuracy_score(binary_all_labels, binary_all_predictions)
+    binary_precision = precision_score(binary_all_labels, binary_all_predictions, zero_division=0)
+    binary_recall = recall_score(binary_all_labels, binary_all_predictions, zero_division=0)
+
+    return losses, binary_accuracy, binary_precision, binary_recall, roc_auc_dict, labels_distr, datadis, all_probabilities, all_labels

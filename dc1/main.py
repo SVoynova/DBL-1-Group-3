@@ -1,10 +1,14 @@
+import numpy as np
+from torch.utils.data import DataLoader
+
 from dc1.batch_sampler import BatchSampler
 from dc1.image_dataset import ImageDataset
 from dc1.net import Net
 from dc1.softmaxOutputDemo import print_images_with_probabilities
+from dc1.temperature_scaling import TemperatureScaling
 from dc1.train_test import train_model, test_model
 import train_test
-
+import calibrate_model
 # Torch imports
 import torch
 import torch.nn as nn
@@ -28,22 +32,38 @@ import os
 from evaluationMetricUtility import EvaluationMettricsLogger
 from torch.optim import AdamW
 from torch.optim.lr_scheduler import StepLR
-
 from MCDropout import MCDropoutAnalysis
-
+from evaluationMetricUtility import EvaluationMetricsLogger
+from torch.optim import AdamW
+from torch.optim.lr_scheduler import StepLR
 matplotlib.use('TkAgg')
 
 def main(args: argparse.Namespace, activeloop: bool = True) -> None:
 
+
+def main(args: argparse.Namespace, activeloop: bool = True) -> None:
     # Load the train and test datasets. Enable data augmentation by setting the augmentation flag to True.
     # The second 'False' refers to the augmentation flag (set to True to enable augmentation).
     # The first 'False' addresses class imbalance; it should be set to True for training data to handle imbalance,
     # and False for test data. If no 'labels_for_augmentation' is specified but augmentation is enabled,
     # apply augmentation to all classes.
     train_dataset = ImageDataset(Path("../data/X_train.npy"),
-                                 Path("../data/Y_train.npy"), False, True, [0, 1, 2, 3, 4, 5])
+                                 Path("../data/Y_train.npy"), False, False, [0, 1, 2, 3, 4, 5])
     test_dataset = ImageDataset(Path("../data/X_test.npy"),
                                 Path("../data/Y_test.npy"), False, False, [0, 1, 2, 3, 4, 5])
+
+    #
+    adjust_class_weights = False  # Set this to true to enable class weights adjustment using the validation set
+
+    # For training dataset
+    train_dataset = ImageDataset(Path("../data/X_train.npy"), Path("../data/Y_train.npy"), False, False,
+                                 [0, 1, 2, 3, 4, 5])
+    # For validation dataset
+    validation_dataset = ImageDataset(Path("../data/X_train.npy"), Path("../data/Y_train.npy"), True, False,
+                                      is_validation=True, split_ratio=0.1)
+    # Test dataset remains the same
+    test_dataset = ImageDataset(Path("../data/X_test.npy"), Path("../data/Y_test.npy"), False, False,
+                                [0, 1, 2, 3, 4, 5])
 
     MonteCarlo = False
 
@@ -55,7 +75,7 @@ def main(args: argparse.Namespace, activeloop: bool = True) -> None:
     #model.load_state_dict(torch.load("../dc1/SAVED_MODEL_V2.pth"))
 
     # Initialize optimizer and loss function - original params: lr=0.001, momentum=0.1
-    #optimizer = optim.SGD(model.parameters(), lr=0.005, momentum=0.1)
+    # optimizer = optim.SGD(model.parameters(), lr=0.005, momentum=0.1)
 
     optimizer = AdamW(model.parameters(), lr=0.00035)  # AdamW requires a lower LR generally
 
@@ -68,8 +88,14 @@ def main(args: argparse.Namespace, activeloop: bool = True) -> None:
 
     #class_weights = torch.tensor([2., 2.5, 2, 1.4, 4, 4.8], dtype=torch.float)
 
-    class_weights = torch.tensor([1, 1, 1, 1, 1, 1], dtype=torch.float)
+    #class_weights = torch.tensor([1, 1, 1, 1, 1, 1], dtype=torch.float)
 
+
+    # Modified loss function to compensate for class imbalances
+    # class_weights = torch.tensor([0.8, 2.06, 2.42, 2.63, 3.74, 4.69], dtype=torch.float)
+    # class_weights = torch.tensor([2, 2, 2, 1.0, 3, 4], dtype=torch.float)
+    class_weights = torch.tensor([2., 2, 2, 1, 3, 4], dtype=torch.float)
+    # class_weights = torch.tensor([1., 1., 1, 1.0, 1, 1], dtype=torch.float)
     # If you're using a GPU, ensure to transfer the weights to the same device as your model and data
     if torch.cuda.is_available():
         class_weights = class_weights.to('cuda')
@@ -77,7 +103,7 @@ def main(args: argparse.Namespace, activeloop: bool = True) -> None:
     loss_function = nn.CrossEntropyLoss(weight=class_weights)
 
     # Fetch epoch and batch count from arguments
-    n_epochs = args.nb_epochs
+    n_epochs = 1 #args.nb_epochs
     batch_size = args.batch_size
 
     # IMPORTANT! Set this to True to see actual errors regarding
@@ -93,12 +119,27 @@ def main(args: argparse.Namespace, activeloop: bool = True) -> None:
     train_sampler = BatchSampler(
         batch_size=batch_size, dataset=train_dataset, balanced=args.balanced_batches
     )
+
+    validation_sampler = BatchSampler(
+        batch_size=args.batch_size, dataset=validation_dataset, balanced=args.balanced_batches
+        # Assuming balanced=False disables balancing
+    )
+
     test_sampler = BatchSampler(
         batch_size=100, dataset=test_dataset, balanced=args.balanced_batches
     )
 
     # Instantiate EvaluationMetricsLogger for logging and plotting metrics
-    metrics_logger = EvaluationMettricsLogger()
+    metrics_logger = EvaluationMetricsLogger()
+
+    if torch.cuda.is_available():
+        class_weights = class_weights.to('cuda')
+    elif torch.backends.mps.is_available():
+        class_weights = class_weights.to('mps')  # Ensure class weights are also moved to MPS
+    else:
+        class_weights = class_weights.to('cpu')
+    loss_function = nn.CrossEntropyLoss(weight=class_weights)
+
 
     softmaxList = []
 
@@ -112,6 +153,15 @@ def main(args: argparse.Namespace, activeloop: bool = True) -> None:
     for e in range(n_epochs):
         if activeloop:
             metrics_logger.log_training_epochs(e, model, train_sampler, optimizer, loss_function, device, MCd=False)
+            metrics_logger.log_training_epochs(e, model, train_sampler, optimizer, loss_function, device)
+
+            if adjust_class_weights:
+                # Update class weights based on validation
+                class_weights = metrics_logger.validate_and_adjust_weights(e, model, validation_sampler, device,
+                                                                           class_weights, adjustment_factor=1.0)
+                # Update the loss function with new class weights
+                loss_function = nn.CrossEntropyLoss(weight=class_weights)
+
             metrics_logger.log_testing_epochs(e, model, test_sampler, loss_function, device)
             if MonteCarlo:
                 avg = metrics_logger.log_testing_epochs(e, model, test_sampler, loss_function, device)
@@ -138,6 +188,7 @@ def main(args: argparse.Namespace, activeloop: bool = True) -> None:
             #     model.load_state_dict(best_model_state)
             #     break
 
+            metrics_logger.plot_training_testing_losses()
             scheduler.step()
 
 
@@ -161,8 +212,19 @@ def main(args: argparse.Namespace, activeloop: bool = True) -> None:
     #metrics_logger.plot_loss_and_accuracy(n_epochs)
     #metrics_logger.plot_roc_curve(n_epochs, train_test)
 
+    metrics_logger.plot_loss_and_accuracy(n_epochs)
+    metrics_logger.plot_roc_curve(n_epochs, train_test)
+
+    model.eval()
+
+    # Calculate ECE before calibration
+    metrics_logger.calculate_and_log_ece()
+
+    # Calibrate model using optimal temperature scaling and evaluate
+    opt_temperature = calibrate_model.calibrate_evaluate(model, validation_sampler, test_dataset, device)
+
     # SoftMax Demo
-    #print_images_with_probabilities(model, test_dataset, device)
+    #print_images_with_probabilities(model, test_dataset, device, opt_temperature)
 
     #SAVES MODEL WEIGHTS OF FINAL EPOCH
     #torch.save(model.state_dict(), 'SAVED_MODEL.pth')
@@ -181,9 +243,7 @@ def setup_model_device(model, DEBUG):
         model.to(device)
         # Creating a summary of our model and its layers:
         summary(model, (1, 128, 128), device=device)
-    elif (
-            torch.backends.mps.is_available() and not DEBUG
-    ):  # PyTorch supports Apple Silicon GPU's from version 1.12
+    elif torch.backends.mps.is_available() and not DEBUG:  # PyTorch supports Apple Silicon GPU's from version 1.12
         print("@@@ Apple silicon device enabled, training with Metal backend...")
         device = "mps"
         model.to(device)
@@ -195,6 +255,7 @@ def setup_model_device(model, DEBUG):
 
 
     return model, device
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -212,6 +273,3 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     main(args)
-
-
-
