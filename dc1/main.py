@@ -1,18 +1,9 @@
-import numpy as np
-from torch.utils.data import DataLoader
-
 from dc1.batch_sampler import BatchSampler
 from dc1.image_dataset import ImageDataset
 from dc1.net import Net
-from dc1.softmaxOutputDemo import print_images_with_probabilities
-from dc1.temperature_scaling import TemperatureScaling
-from dc1.train_test import train_model, test_model
 import train_test
-import calibrate_model
-# Torch imports
-import torch
-import torch.nn as nn
-import torch.optim as optim
+#from dc1.calibrate_model import calibrate_evaluate
+
 from torchsummary import summary  # type: ignore
 import torch
 import torch.nn as nn
@@ -20,26 +11,19 @@ import torch.nn as nn
 # Other imports
 import matplotlib
 import matplotlib.pyplot as plt  # type: ignore
-from matplotlib.pyplot import figure
 import argparse
 import plotext  # type: ignore
-from datetime import datetime
 from pathlib import Path
-from typing import List
 import os
 
 # Utility class for the evaluation metric things
-from evaluationMetricUtility import EvaluationMettricsLogger
-from torch.optim import AdamW
-from torch.optim.lr_scheduler import StepLR
 from MCDropout import MCDropoutAnalysis
 from evaluationMetricUtility import EvaluationMetricsLogger
 from torch.optim import AdamW
 from torch.optim.lr_scheduler import StepLR
 matplotlib.use('TkAgg')
 
-def main(args: argparse.Namespace, activeloop: bool = True) -> None:
-
+#def main(args: argparse.Namespace, activeloop: bool = True) -> None:
 
 def main(args: argparse.Namespace, activeloop: bool = True) -> None:
     # Load the train and test datasets. Enable data augmentation by setting the augmentation flag to True.

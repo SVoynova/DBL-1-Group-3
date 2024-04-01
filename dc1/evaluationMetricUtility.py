@@ -8,7 +8,7 @@ from pathlib import Path
 from datetime import datetime
 import numpy as np
 from netcal.metrics import ECE
-from netcal.presentation import ReliabilityDiagram
+#from netcal.presentation import ReliabilityDiagram
 
 class EvaluationMetricsLogger:
     def __init__(self):
@@ -46,7 +46,7 @@ class EvaluationMetricsLogger:
 
     def log_testing_epochs(self, epoch: int, model, test_sampler, loss_function, device):
         # Log testing metrics for each epoch, including ROC AUC
-            test_losses, test_acc, test_prec, test_rec, roc_auc_dict, labels_distr, datadis, overall_avg = test_model(model, test_sampler, loss_function,device)
+        test_losses, test_acc, test_prec, test_rec, roc_auc_dict, labels_distr, datadis, overall_avg = test_model(model, test_sampler, loss_function,device)
         #print(f"ROC AUC dict for epoch {epoch + 1}: {roc_auc_dict}")
         # Extended to capture prediction probabilities and true labels
         test_losses, test_acc, test_prec, test_rec, roc_auc_dict, labels_distr, datadis, pred_probs, true_labels = test_model(model, test_sampler, loss_function, device)
