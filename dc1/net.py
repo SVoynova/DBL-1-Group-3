@@ -6,6 +6,25 @@ from typing import Tuple
 import matplotlib.pyplot as plt
 import numpy as np
 
+#Add+
+class SEBlock(nn.Module):
+    def __init__(self, channel, reduction=16):
+        super(SEBlock, self).__init__()
+        self.avg_pool = nn.AdaptiveAvgPool2d(1)
+        self.fc = nn.Sequential(
+            nn.Linear(channel, channel // reduction, bias=False),
+            nn.ReLU(inplace=True),
+            nn.Linear(channel // reduction, channel, bias=False),
+            nn.Sigmoid()
+        )
+
+    def forward(self, x):
+        b, c, _, _ = x.size()
+        y = self.avg_pool(x).view(b, c)
+        y = self.fc(y).view(b, c, 1, 1)
+        return x * y.expand_as(x)
+
+
 
 
 class ResidualBlock(nn.Module):
@@ -27,6 +46,11 @@ class ResidualBlock(nn.Module):
             )
 
         self.apply_dropout = apply_dropout
+
+        #ADD+
+        self.se = SEBlock(out_channels)
+
+
         if apply_dropout:
             self.dropout = nn.Dropout(0.5)
 
@@ -37,11 +61,16 @@ class ResidualBlock(nn.Module):
         out = self.bn1(out)
         out = self.relu(out)
 
+        out = self.dropout(out)
+
         if self.apply_dropout:
             out = self.dropout(out)  # Apply dropout after the first activation
 
         out = self.conv2(out)
         out = self.bn2(out)
+
+        #ADD+
+        out = self.se(out)
 
         out += identity
         out = self.relu(out)
@@ -66,7 +95,7 @@ class Net(nn.Module):
         in_channels = 64
 
         for i in range(depth):
-            out_channels = in_channels * 2 if i else in_channels  # Double the channels at each layer, but not for the first
+            out_channels = in_channels * 2 if i else in_channels
             layers.append(ResidualBlock(in_channels, out_channels, stride=2 if i else 1, apply_dropout = True),)
             layers.append(ResidualBlock(out_channels, out_channels, apply_dropout = True))  # Keep the same number of channels within a layer
             in_channels = out_channels
@@ -82,9 +111,12 @@ class Net(nn.Module):
 
     def forward(self, x):
         x = self.init_conv(x)
+
         x = self.res_layers(x)
         x = self.avg_pool(x)
+        x = F.dropout(x, p=0.1)
         x = x.view(x.size(0), -1)
+        x = F.dropout(x, p=0.1)
 
         if self.MCd:
             x = F.dropout(x, p=0.5)
@@ -96,6 +128,97 @@ class Net(nn.Module):
 
         return x
 
+
+# class ResidualBlock(nn.Module):
+#     def __init__(self, in_channels, out_channels, stride=1, expansion=1, apply_dropout: bool = False):
+#         super(ResidualBlock, self).__init__()
+#         mid_channels = out_channels // expansion
+#         self.conv1 = nn.Conv2d(in_channels, mid_channels, kernel_size=3, stride=stride, padding=1)
+#         self.bn1 = nn.BatchNorm2d(mid_channels)
+#         self.relu = nn.ReLU(inplace=True)
+#
+#         self.conv2 = nn.Conv2d(mid_channels, out_channels, kernel_size=3, padding=1)
+#         self.bn2 = nn.BatchNorm2d(out_channels)
+#
+#         self.downsample = nn.Sequential()
+#         if stride != 1 or in_channels != out_channels:
+#             self.downsample = nn.Sequential(
+#                 nn.Conv2d(in_channels, out_channels, kernel_size=1, stride=stride),
+#                 nn.BatchNorm2d(out_channels)
+#             )
+#
+#         self.apply_dropout = apply_dropout
+#         if apply_dropout:
+#             self.dropout = nn.Dropout(0.5)
+#
+#     def forward(self, x):
+#         identity = self.downsample(x)
+#
+#         out = self.conv1(x)
+#         out = self.bn1(out)
+#         out = self.relu(out)
+#
+#         if self.apply_dropout:
+#             out = self.dropout(out)  # Apply dropout after the first activation
+#
+#         out = self.conv2(out)
+#         out = self.bn2(out)
+#
+#         out += identity
+#         out = self.relu(out)
+#
+#         return out
+#
+#
+# class Net(nn.Module):
+#     def __init__(self, n_classes: int, depth: int = 3, MCd: bool = False):
+#         super(Net, self).__init__()
+#         self.MCd = MCd
+#
+#         self.init_conv = nn.Sequential(
+#             nn.Conv2d(1, 64, kernel_size=3, stride=2, padding=1),
+#             nn.BatchNorm2d(64),
+#             nn.ReLU(inplace=True),
+#             nn.MaxPool2d(kernel_size=3, stride=2, padding=1),
+#         )
+#
+#         layers = []
+#
+#         in_channels = 64
+#
+#         for i in range(depth):
+#             out_channels = in_channels * 2 if i else in_channels  # Double the channels at each layer, but not for the first
+#             layers.append(ResidualBlock(in_channels, out_channels, stride=2 if i else 1, apply_dropout = True),)
+#             layers.append(ResidualBlock(out_channels, out_channels, apply_dropout = True))  # Keep the same number of channels within a layer
+#             in_channels = out_channels
+#
+#         self.res_layers = nn.Sequential(*layers)
+#
+#         self.avg_pool = nn.AdaptiveAvgPool2d((1, 1))
+#
+#         # Assuming the output of the last ResidualBlock is `out_channels`, adjust linear layer accordingly.
+#         self.linear_layers = nn.Sequential(
+#             nn.Linear(out_channels, n_classes),
+#         )
+#
+#     def forward(self, x):
+#         x = self.init_conv(x)
+#         x = self.res_layers(x)
+#         x = self.avg_pool(x)
+#         x = x.view(x.size(0), -1)
+#
+#         if self.MCd:
+#             x = F.dropout(x, p=0.5)
+#
+#         x = self.linear_layers(x)
+#
+#         if self.MCd:
+#             x = F.softmax(x, dim=1)  # Apply softmax to the output of the linear layer
+#
+#         return x
+
+
+#Original Model
 # class Net(nn.Module):
 #     def __init__(self, n_classes: int) -> None:
 #         super(Net, self).__init__()

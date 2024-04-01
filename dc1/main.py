@@ -41,7 +41,7 @@ def main(args: argparse.Namespace, activeloop: bool = True) -> None:
     # and False for test data. If no 'labels_for_augmentation' is specified but augmentation is enabled,
     # apply augmentation to all classes.
     train_dataset = ImageDataset(Path("../data/X_train.npy"),
-                                 Path("../data/Y_train.npy"), False, False, [0, 1, 2, 3, 4, 5])
+                                 Path("../data/Y_train.npy"), False, True, [0, 1, 2, 3, 4, 5])
     test_dataset = ImageDataset(Path("../data/X_test.npy"),
                                 Path("../data/Y_test.npy"), False, False, [0, 1, 2, 3, 4, 5])
 
@@ -52,25 +52,21 @@ def main(args: argparse.Namespace, activeloop: bool = True) -> None:
     model = Net(n_classes=6,  depth = 3, MCd = MonteCarlo)
 
     #LOAD WEIGHTS OF SAVED MODEL
-    model.load_state_dict(torch.load("../dc1/SAVED_MODEL_V2.pth"))
+    #model.load_state_dict(torch.load("../dc1/SAVED_MODEL_V2.pth"))
 
     # Initialize optimizer and loss function - original params: lr=0.001, momentum=0.1
     #optimizer = optim.SGD(model.parameters(), lr=0.005, momentum=0.1)
 
-    optimizer = AdamW(model.parameters(), lr=0.0015)  # AdamW requires a lower LR generally
+    optimizer = AdamW(model.parameters(), lr=0.00035)  # AdamW requires a lower LR generally
 
     # Define a scheduler as before
-    scheduler = StepLR(optimizer, step_size=5, gamma=0.1)
+    scheduler = StepLR(optimizer, step_size=30, gamma=0.1)
 
     #    loss_function = nn.CrossEntropyLoss()
     #Modified loss function to compensate for class imbalances
     #class_weights = torch.tensor([2, 2, 2, 1.0, 3, 4], dtype=torch.float)
 
-
-
     #class_weights = torch.tensor([2., 2.5, 2, 1.4, 4, 4.8], dtype=torch.float)
-
-
 
     class_weights = torch.tensor([1, 1, 1, 1, 1, 1], dtype=torch.float)
 
@@ -106,6 +102,12 @@ def main(args: argparse.Namespace, activeloop: bool = True) -> None:
 
     softmaxList = []
 
+    # #Variables for going back to better model
+    # lowest_test_error = float('inf')
+    # epochs_since_improvement = 0
+    # rollback_threshold = 2  # Number of epochs to wait before rolling back
+    # best_model_state = None  # This will hold the best model's state in memory
+
     # Loop over epochs to train and test the model, logging the metrics
     for e in range(n_epochs):
         if activeloop:
@@ -114,8 +116,28 @@ def main(args: argparse.Namespace, activeloop: bool = True) -> None:
             if MonteCarlo:
                 avg = metrics_logger.log_testing_epochs(e, model, test_sampler, loss_function, device)
                 softmaxList.append(avg)
+
+            #Stores the model weights
+
             # Plots the both training and the testing losses of the logged model
             metrics_logger.plot_training_testing_losses(MCd = False)
+
+            # current_test_error = metrics_logger.current_test_error
+            #
+            # if current_test_error < lowest_test_error:
+            #     lowest_test_error = current_test_error
+            #     epochs_since_improvement = 0
+            #     best_model_state = model.state_dict().copy()
+            #     print(f"Epoch {e}: New best model with test error {current_test_error}")
+            # else:
+            #     epochs_since_improvement += 1
+            #
+            # if epochs_since_improvement > rollback_threshold:
+            #     print(
+            #         f"Test error increased for {rollback_threshold} consecutive epochs. Rolling back to the best model.")
+            #     model.load_state_dict(best_model_state)
+            #     break
+
             scheduler.step()
 
 
@@ -178,7 +200,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
     parser.add_argument(
-        "--nb_epochs", help="number of training iterations", default=4, type=int
+        "--nb_epochs", help="number of training iterations", default=50, type=int
     )
     parser.add_argument("--batch_size", help="batch_size", default=50, type=int)
     parser.add_argument(
