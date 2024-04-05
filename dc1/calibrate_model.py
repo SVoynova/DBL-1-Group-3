@@ -1,6 +1,9 @@
 import torch
+from sklearn.preprocessing import label_binarize
 from torch.utils.data import DataLoader
 import numpy as np
+
+from dc1.evaluationMetricUtility import EvaluationMetricsLogger
 from temperature_scaling import TemperatureScaling
 from sklearn.metrics import brier_score_loss
 from netcal.metrics import ECE
@@ -9,7 +12,7 @@ import matplotlib.pyplot as plt
 
 
 
-def calibrate_evaluate(model, validation_sampler, test_dataset, device):
+def calibrate_evaluate(model, validation_sampler, test_dataset, loss_function, device):
 
     model.eval()
 
@@ -18,24 +21,21 @@ def calibrate_evaluate(model, validation_sampler, test_dataset, device):
 
     # Calibrate the model
     temp_scaling_model.set_temperature(validation_sampler, model, device)
-    optimal_temperatue = temp_scaling_model.temperature.item()
-    print("Temperature:", optimal_temperatue)
-
-    #post_calibration_metrics = EvaluationMetricsLogger()
+    optimal_temperature = temp_scaling_model.temperature.item()
+    print("Temperature:", optimal_temperature)
 
     # Assuming test_dataset is already defined as shown in your snippet
     test_loader = DataLoader(test_dataset, batch_size=64, shuffle=False)
-
-    # Prepare your data loader
-    test_loader = DataLoader(test_dataset, batch_size=64, shuffle=False)
     predictions, targets = [], []
+
+    metrics_logger = EvaluationMetricsLogger()
 
     # Collect predictions and targets
     with torch.no_grad():
         for inputs, labels in test_loader:
             inputs = inputs.to(device)
             logits = model(inputs)
-            scaled_logits = logits / optimal_temperatue
+            scaled_logits = logits / optimal_temperature
             probs = torch.nn.functional.softmax(scaled_logits, dim=1)
             predictions.extend(probs.cpu().numpy())
             targets.extend(labels.cpu().numpy())
@@ -48,17 +48,16 @@ def calibrate_evaluate(model, validation_sampler, test_dataset, device):
     ece_value = ece.measure(predictions, targets.argmax(axis=1))
     average_brier_score = multi_class_brier_score(targets, predictions)
 
-    #brier_score = brier_score_loss(targets, predictions, pos_label=1)
-
     print(f"Expected Calibration Error (ECE) after calibration: {ece_value}")
     print("Average Brier Score for Multi-Class:", average_brier_score)
 
-    # Plot reliability diagram
-    diagram = ReliabilityDiagram(15)
-    diagram.plot(predictions, targets.argmax(axis=1))
-    plt.show()
-    
-    return optimal_temperatue
+    # Plot reliability diagram for each class after calibration
+    metrics_logger.pred_probs_test = predictions
+    metrics_logger.true_labels_test = np.argmax(targets, axis=1)
+    for i in range(0,6):
+        metrics_logger.multiclass_calibration_curve(i, True)
+
+    return optimal_temperature
 
 
 def multi_class_brier_score(y_true, y_prob):
@@ -72,6 +71,8 @@ def multi_class_brier_score(y_true, y_prob):
     Returns:
     - Average Brier score across all classes.
     """
+
+
     n_classes = y_prob.shape[1]
 
     # Convert one-hot encoded targets back to class integers

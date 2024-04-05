@@ -1,3 +1,7 @@
+from netcal.presentation import ReliabilityDiagram
+from torch.utils.data import DataLoader
+
+from dc1 import calibrate_model
 from dc1.batch_sampler import BatchSampler
 from dc1.image_dataset import ImageDataset
 from dc1.net import Net
@@ -7,6 +11,7 @@ import train_test
 from torchsummary import summary  # type: ignore
 import torch
 import torch.nn as nn
+import numpy as np
 
 # Other imports
 import matplotlib
@@ -15,9 +20,12 @@ import argparse
 import plotext  # type: ignore
 from pathlib import Path
 import os
+from netcal.presentation import ReliabilityDiagram
+import matplotlib.pyplot as plt
 
 # Utility class for the evaluation metric things
 from MCDropout import MCDropoutAnalysis
+from dc1.softmaxOutputDemo import print_images_with_probabilities
 from evaluationMetricUtility import EvaluationMetricsLogger
 from torch.optim import AdamW
 from torch.optim.lr_scheduler import StepLR
@@ -40,16 +48,17 @@ def main(args: argparse.Namespace, activeloop: bool = True) -> None:
     adjust_class_weights = False  # Set this to true to enable class weights adjustment using the validation set
 
     # For training dataset
-    train_dataset = ImageDataset(Path("../data/X_train.npy"), Path("../data/Y_train.npy"), False, False,
+    train_dataset = ImageDataset(Path("../data/X_train.npy"), Path("../data/Y_train.npy"), True, False,
                                  [0, 1, 2, 3, 4, 5])
     # For validation dataset
     validation_dataset = ImageDataset(Path("../data/X_train.npy"), Path("../data/Y_train.npy"), True, False,
                                       is_validation=True, split_ratio=0.1)
     # Test dataset remains the same
-    test_dataset = ImageDataset(Path("../data/X_test.npy"), Path("../data/Y_test.npy"), False, False,
+    test_dataset = ImageDataset(Path("../data/X_test.npy"), Path("../data/Y_test.npy"), True, False,
                                 [0, 1, 2, 3, 4, 5])
 
     MonteCarlo = False
+    Calibration = False
 
     # Initialize the Neural Net with the number of distinct labels
     #Depth determins the number of layers employed, MCd to True for Monte Carlo Dropout
@@ -87,7 +96,7 @@ def main(args: argparse.Namespace, activeloop: bool = True) -> None:
     loss_function = nn.CrossEntropyLoss(weight=class_weights)
 
     # Fetch epoch and batch count from arguments
-    n_epochs = 1 #args.nb_epochs
+    n_epochs = args.nb_epochs
     batch_size = args.batch_size
 
     # IMPORTANT! Set this to True to see actual errors regarding
@@ -137,7 +146,7 @@ def main(args: argparse.Namespace, activeloop: bool = True) -> None:
     for e in range(n_epochs):
         if activeloop:
             metrics_logger.log_training_epochs(e, model, train_sampler, optimizer, loss_function, device, MCd=False)
-            metrics_logger.log_training_epochs(e, model, train_sampler, optimizer, loss_function, device)
+            #metrics_logger.log_training_epochs(e, model, train_sampler, optimizer, loss_function, device)
 
             if adjust_class_weights:
                 # Update class weights based on validation
@@ -172,9 +181,8 @@ def main(args: argparse.Namespace, activeloop: bool = True) -> None:
             #     model.load_state_dict(best_model_state)
             #     break
 
-            metrics_logger.plot_training_testing_losses()
+            #metrics_logger.plot_training_testing_losses()
             scheduler.step()
-
 
     if not Path("model_weights/").exists():
         os.mkdir(Path("model_weights/"))
@@ -196,16 +204,23 @@ def main(args: argparse.Namespace, activeloop: bool = True) -> None:
     #metrics_logger.plot_loss_and_accuracy(n_epochs)
     #metrics_logger.plot_roc_curve(n_epochs, train_test)
 
-    metrics_logger.plot_loss_and_accuracy(n_epochs)
-    metrics_logger.plot_roc_curve(n_epochs, train_test)
+    #metrics_logger.plot_loss_and_accuracy(n_epochs)
+    #metrics_logger.plot_roc_curve(n_epochs, train_test)
+
 
     model.eval()
 
-    # Calculate ECE before calibration
+    # Even if no calibration is implemented, this is useful
+    # Calculate ECE , Brier score and reliability diagram before calibration
     metrics_logger.calculate_and_log_ece()
+    # Plot reliability diagram for each class before calibration, saved in directory graphs
+    for i in range(0,6):
+        metrics_logger.multiclass_calibration_curve(i, False)
 
-    # Calibrate model using optimal temperature scaling and evaluate
-    opt_temperature = calibrate_model.calibrate_evaluate(model, validation_sampler, test_dataset, device)
+    if Calibration:
+        # Calibrate model using optimal temperature scaling and evaluate
+        # This calculates ECE, Brier score and plots reliability diagrams after calibration
+        opt_temperature = calibrate_model.calibrate_evaluate(model, validation_sampler, test_dataset, loss_function, device)
 
     # SoftMax Demo
     #print_images_with_probabilities(model, test_dataset, device, opt_temperature)
@@ -213,8 +228,6 @@ def main(args: argparse.Namespace, activeloop: bool = True) -> None:
     #SAVES MODEL WEIGHTS OF FINAL EPOCH
     #torch.save(model.state_dict(), 'SAVED_MODEL.pth')
     #torch.save(model.state_dict(), 'SAVED_MODEL_V2.pth')
-
-
 
 def setup_model_device(model, DEBUG):
     """
@@ -236,7 +249,6 @@ def setup_model_device(model, DEBUG):
         device = "cpu"
         # Creating a summary of our model and its layers:
         summary(model, (1, 128, 128), device=device)
-
 
     return model, device
 
