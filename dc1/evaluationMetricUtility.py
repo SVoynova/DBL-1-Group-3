@@ -1,8 +1,16 @@
+import os
 from typing import List
 import torch
 import plotext
 from matplotlib.pyplot import figure
 import matplotlib.pyplot as plt
+from netcal.presentation import ReliabilityDiagram
+from sklearn.calibration import calibration_curve
+from torch.utils.data import DataLoader
+
+import dc1
+import dc1.calibrate_model
+from dc1 import calibrate_model
 from dc1.train_test import train_model, test_model, label_names
 from pathlib import Path
 from datetime import datetime
@@ -46,12 +54,17 @@ class EvaluationMetricsLogger:
 
     def log_testing_epochs(self, epoch: int, model, test_sampler, loss_function, device):
         # Log testing metrics for each epoch, including ROC AUC
-        #test_losses, test_acc, test_prec, test_rec, roc_auc_dict, labels_distr, datadis, overall_avg = test_model(model, test_sampler, loss_function,device)
         test_losses, test_acc, test_prec, test_rec, roc_auc_dict, labels_distr, datadis = test_model(model,test_sampler, loss_function, device)
+
         #print(f"ROC AUC dict for epoch {epoch + 1}: {roc_auc_dict}")
-        # Extended to capture prediction probabilities and true labels
 #        test_losses, test_acc, test_prec, test_rec, roc_auc_dict, labels_distr, datadis, pred_probs, true_labels = test_model(model, test_sampler, loss_function, device)
+        #SILVIA
+#        test_losses, test_acc, test_prec, test_rec, roc_auc_dict, labels_distr, datadis, overall_avg, pred_probs, true_labels = test_model(model, test_sampler, loss_function, device)
+
         print(f"ROC AUC dict for epoch {epoch + 1}: {roc_auc_dict}")
+        # Extended to capture prediction probabilities and true labels
+        #test_losses, test_acc, test_prec, test_rec, roc_auc_dict, labels_distr, datadis, pred_probs, true_labels = test_model(model, test_sampler, loss_function, device)
+        #print(f"ROC AUC dict for epoch {epoch + 1}: {roc_auc_dict}")
         self.roc_auc_data.append(roc_auc_dict)
         self.accuracies_test.append(test_acc)
         self.precisions_test.append(test_prec)
@@ -87,13 +100,6 @@ class EvaluationMetricsLogger:
             plotext.xticks([i for i in range(len(self.mean_losses_train) + 1)])
             plotext.show()
 
-            """# Plot the reliability diagram - uncomment to track changes with each testing epoch
-            pred_probs_flat = np.vstack(self.pred_probs_test)
-            true_labels_flat = np.array(self.true_labels_test)
-            diagram = ReliabilityDiagram(15)
-            diagram.plot(pred_probs_flat, true_labels_flat)
-            plt.show()"""
-
     def validation_accuracies_per_class(self, model, validation_dataset, device):
         "This method is used in validate_and_adjust_weights"
         model.eval()
@@ -111,6 +117,7 @@ class EvaluationMetricsLogger:
                     class_correct[label] += (predicted[i] == label).item()
                     class_total[label] += 1
         accuracies = [class_correct[i] / class_total[i] for i in range(6)]
+
         return accuracies
 
     def adjust_class_weights(self, current_weights, accuracies, adjustment_factor=0.75):
@@ -136,7 +143,7 @@ class EvaluationMetricsLogger:
 
         return adjusted_weights
 
-    def plot_training_testing_losses(self):
+    def plot_training_testing_losses(self, MCd: bool = False):
         # Plot scatter of training and testing losses using plotext
         plotext.clf()
         plotext.scatter(self.mean_losses_train, label="Train Loss")
@@ -144,7 +151,83 @@ class EvaluationMetricsLogger:
         plotext.title("Train and Test Loss")
         plotext.xticks([i for i in range(len(self.mean_losses_train) + 1)])
         plotext.show()
+
 #>>>>>>> 764a6857aeefc49591ebc809dc14898c7f7ddb82
+
+    """def plot_reliability_diagram(self):
+        # Plot the reliability diagram - uncomment to track changes with each testing epoch
+        print("Plotting the reliability diagram")
+        pred_probs_flat = np.vstack(self.pred_probs_test)
+        true_labels_flat = np.array(self.true_labels_test)
+        diagram = ReliabilityDiagram(15)
+        diagram.plot(pred_probs_flat, true_labels_flat)
+        plt.show()"""
+
+    def multiclass_calibration_curve(self, class_index, calibration):
+
+        pred_probs = np.array(self.pred_probs_test)
+        true_labels = np.array(self.true_labels_test)
+
+        # Convert true labels to binary format (1 for the current class, 0 for all other classes)
+        true_binary = (true_labels == class_index).astype(int)
+
+        # Get predicted probabilities for the current class
+        class_probs = pred_probs[:, class_index]
+
+        # Calculate calibration curve
+        fraction_of_positives, mean_predicted_value = calibration_curve(true_binary, class_probs, n_bins=10)
+
+        # Plot reliability diagram
+        # Suppose this is your mapping of class indices to condition names
+        condition_names = {
+            0: 'Pneumothorax',
+            1: 'Nodule',
+            2: 'No Finding',
+            3: 'Infiltration',
+            4: 'Effusion',
+            5: 'Atelectasis'
+        }
+
+        # Plot reliability diagram for the current class
+        plt.figure()
+        plt.plot(mean_predicted_value, fraction_of_positives, "s-", label=f'{condition_names[class_index]}')
+        plt.plot([0, 1], [0, 1], "--", color="gray", label='Perfectly Calibrated')
+
+        # Create a directory for graph storing
+        if not os.path.exists("graphs"):
+            # If it does not exist, create the directory
+            os.makedirs("graphs")
+
+        # Save the figure
+        if calibration == False:
+            # Calculate the average Brier score for multi-class
+            predictions = np.array(self.pred_probs_test)
+            targets = np.eye(6)[self.true_labels_test]  # Convert to one-hot encoding for Brier score
+            average_brier_score = calibrate_model.multi_class_brier_score(targets, predictions)  # Assuming true_labels is correct
+            print(f"Average Brier Score for Multi-Class before calibration: {average_brier_score}")
+            # Customize the plot
+            plt.ylabel('Fraction of positives')
+            plt.xlabel('Mean predicted value')
+            plt.title(f'Reliability Diagram for {condition_names[class_index]} before calibration')
+
+            # Show the legend
+            plt.legend()
+            filename = os.path.join("graphs", f"reliability_diagram_{condition_names[class_index]}_before_calibration.png")
+        else:
+            # Customize the plot
+            plt.ylabel('Fraction of positives')
+            plt.xlabel('Mean predicted value')
+            plt.title(f'Reliability Diagram for {condition_names[class_index]} after calibration')
+
+            # Show the legend
+            plt.legend()
+            filename = os.path.join("graphs", f"reliability_diagram_{condition_names[class_index]}_after_calibration.png")
+
+        plt.savefig(filename, format='png', bbox_inches='tight')
+
+        # Clear the current figure after saving it
+        plt.close()
+
 
     def plot_loss_and_accuracy(self, epochs):
         # Plot training and testing losses and accuracies over epochs
@@ -152,7 +235,8 @@ class EvaluationMetricsLogger:
         figure(figsize=(9, 10), dpi=80)
         fig, (ax1, ax2) = plt.subplots(2, sharex=True)
 
-        ax1.plot(range(1, 1 + epochs), [x.detach().cpu() for x in self.mean_losses_train], label="Train Loss", marker='o',
+        ax1.plot(range(1, 1 + epochs), [x.detach().cpu() for x in self.mean_losses_train], label="Train Loss",
+                 marker='o',
                  color="blue")
         ax1.plot(range(1, 1 + epochs), [x.detach().cpu() for x in self.mean_losses_test], label="Test Loss", marker='o',
                  color="red")
@@ -170,8 +254,8 @@ class EvaluationMetricsLogger:
         ax2.legend(loc='upper right')
 
         # Save plots to artifacts folder
-        fig.savefig(Path("artifacts") / f"session_{self.now_time.month:02}_{self.now_time.day:02}_{self.now_time.hour}_{self.now_time.minute:02}.png")
-
+        fig.savefig(Path(
+            "artifacts") / f"session_{self.now_time.month:02}_{self.now_time.day:02}_{self.now_time.hour}_{self.now_time.minute:02}.png")
 
     def plot_roc_curve(self, epochs, train_m):
         # Plotting and saving ROC Curves
@@ -262,7 +346,26 @@ class EvaluationMetricsLogger:
 
         print(f"Expected Calibration Error (ECE) before calibration: {ece_value}")
 
+    import matplotlib.pyplot as plt
+    from sklearn.calibration import calibration_curve
 
+    def plot_calibration_curves_for_each_class(model, dataset, device):
+        model.eval()  # Set the model to evaluation mode
+
+        loader = DataLoader(dataset, batch_size=64, shuffle=False)
+        predictions, actuals = [], []
+
+        with torch.no_grad():
+            for inputs, labels in loader:
+                inputs = inputs.to(device)
+                outputs = model(inputs)
+                probs = torch.nn.functional.softmax(outputs, dim=1)
+                predictions.extend(probs.cpu().numpy())
+                actuals.extend(labels.cpu().numpy())
+
+        # Convert lists to numpy arrays for processing
+        predictions = np.array(predictions)
+        actuals = np.array(actuals)
 
     # def perform_grid_search():
     #     epoch_range = [5, 10, 15]
