@@ -46,10 +46,11 @@ class EvaluationMetricsLogger:
 
     def log_testing_epochs(self, epoch: int, model, test_sampler, loss_function, device):
         # Log testing metrics for each epoch, including ROC AUC
-        test_losses, test_acc, test_prec, test_rec, roc_auc_dict, labels_distr, datadis, overall_avg = test_model(model, test_sampler, loss_function,device)
+        #test_losses, test_acc, test_prec, test_rec, roc_auc_dict, labels_distr, datadis, overall_avg = test_model(model, test_sampler, loss_function,device)
+        test_losses, test_acc, test_prec, test_rec, roc_auc_dict, labels_distr, datadis = test_model(model,test_sampler, loss_function, device)
         #print(f"ROC AUC dict for epoch {epoch + 1}: {roc_auc_dict}")
         # Extended to capture prediction probabilities and true labels
-        test_losses, test_acc, test_prec, test_rec, roc_auc_dict, labels_distr, datadis, pred_probs, true_labels = test_model(model, test_sampler, loss_function, device)
+#        test_losses, test_acc, test_prec, test_rec, roc_auc_dict, labels_distr, datadis, pred_probs, true_labels = test_model(model, test_sampler, loss_function, device)
         print(f"ROC AUC dict for epoch {epoch + 1}: {roc_auc_dict}")
         self.roc_auc_data.append(roc_auc_dict)
         self.accuracies_test.append(test_acc)
@@ -66,15 +67,15 @@ class EvaluationMetricsLogger:
         # test_losses, test_acc, test_prec, test_rec, roc_auc_dict, labels_distr, datadis, pred_probs, true_labels = test_model(model, test_sampler, loss_function, device)
 
         # Store prediction probabilities and true labels
-        self.pred_probs_test.extend(pred_probs)
-        self.true_labels_test.extend(true_labels)
+#        self.pred_probs_test.extend(pred_probs)
+#        self.true_labels_test.extend(true_labels)
 
 
         verbose = True
         if verbose == True:
             self._print_metrics(epoch, mean_loss, test_acc, test_prec, test_rec, labels_distr, datadis, train=False)
 
-        return overall_avg
+        #return overall_avg
 
     def plot_training_testing_losses(self,MCd: bool = False):
         if not MCd:

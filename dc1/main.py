@@ -43,8 +43,8 @@ def main(args: argparse.Namespace, activeloop: bool = True) -> None:
     train_dataset = ImageDataset(Path("../data/X_train.npy"), Path("../data/Y_train.npy"), False, False,
                                  [0, 1, 2, 3, 4, 5])
     # For validation dataset
-    validation_dataset = ImageDataset(Path("../data/X_train.npy"), Path("../data/Y_train.npy"), True, False,
-                                      is_validation=True, split_ratio=0.1)
+    #validation_dataset = ImageDataset(Path("../data/X_train.npy"), Path("../data/Y_train.npy"), True, False,
+    #                                  is_validation=True, split_ratio=0.1)
     # Test dataset remains the same
     test_dataset = ImageDataset(Path("../data/X_test.npy"), Path("../data/Y_test.npy"), False, False,
                                 [0, 1, 2, 3, 4, 5])
@@ -53,15 +53,15 @@ def main(args: argparse.Namespace, activeloop: bool = True) -> None:
 
     # Initialize the Neural Net with the number of distinct labels
     #Depth determins the number of layers employed, MCd to True for Monte Carlo Dropout
-    model = Net(n_classes=6,  depth = 3, MCd = MonteCarlo)
-
+    #model = Net(n_classes=6,  depth = 3, MCd = MonteCarlo)
+    model = Net(n_classes  = 6)
     #LOAD WEIGHTS OF SAVED MODEL
     #model.load_state_dict(torch.load("../dc1/SAVED_MODEL_V2.pth"))
 
     # Initialize optimizer and loss function - original params: lr=0.001, momentum=0.1
     # optimizer = optim.SGD(model.parameters(), lr=0.005, momentum=0.1)
 
-    optimizer = AdamW(model.parameters(), lr=0.00035)  # AdamW requires a lower LR generally
+    optimizer = AdamW(model.parameters(), lr=0.00025)  # AdamW requires a lower LR generally
 
     # Define a scheduler as before
     scheduler = StepLR(optimizer, step_size=30, gamma=0.1)
@@ -72,13 +72,12 @@ def main(args: argparse.Namespace, activeloop: bool = True) -> None:
 
     #class_weights = torch.tensor([2., 2.5, 2, 1.4, 4, 4.8], dtype=torch.float)
 
-    #class_weights = torch.tensor([1, 1, 1, 1, 1, 1], dtype=torch.float)
-
+    class_weights = torch.tensor([1, 1, 1, 1, 1, 1], dtype=torch.float)
 
     # Modified loss function to compensate for class imbalances
     # class_weights = torch.tensor([0.8, 2.06, 2.42, 2.63, 3.74, 4.69], dtype=torch.float)
     # class_weights = torch.tensor([2, 2, 2, 1.0, 3, 4], dtype=torch.float)
-    class_weights = torch.tensor([2., 2, 2, 1, 3, 4], dtype=torch.float)
+    #class_weights = torch.tensor([2., 2, 2, 1, 3, 4], dtype=torch.float)
     # class_weights = torch.tensor([1., 1., 1, 1.0, 1, 1], dtype=torch.float)
     # If you're using a GPU, ensure to transfer the weights to the same device as your model and data
     if torch.cuda.is_available():
@@ -87,7 +86,7 @@ def main(args: argparse.Namespace, activeloop: bool = True) -> None:
     loss_function = nn.CrossEntropyLoss(weight=class_weights)
 
     # Fetch epoch and batch count from arguments
-    n_epochs = 1 #args.nb_epochs
+    n_epochs = args.nb_epochs
     batch_size = args.batch_size
 
     # IMPORTANT! Set this to True to see actual errors regarding
@@ -104,10 +103,10 @@ def main(args: argparse.Namespace, activeloop: bool = True) -> None:
         batch_size=batch_size, dataset=train_dataset, balanced=args.balanced_batches
     )
 
-    validation_sampler = BatchSampler(
-        batch_size=args.batch_size, dataset=validation_dataset, balanced=args.balanced_batches
-        # Assuming balanced=False disables balancing
-    )
+    # validation_sampler = BatchSampler(
+    #     batch_size=args.batch_size, dataset=validation_dataset, balanced=args.balanced_batches
+    #     # Assuming balanced=False disables balancing
+    # )
 
     test_sampler = BatchSampler(
         batch_size=100, dataset=test_dataset, balanced=args.balanced_batches
@@ -137,7 +136,7 @@ def main(args: argparse.Namespace, activeloop: bool = True) -> None:
     for e in range(n_epochs):
         if activeloop:
             metrics_logger.log_training_epochs(e, model, train_sampler, optimizer, loss_function, device, MCd=False)
-            metrics_logger.log_training_epochs(e, model, train_sampler, optimizer, loss_function, device)
+            #metrics_logger.log_training_epochs(e, model, train_sampler, optimizer, loss_function, device)
 
             if adjust_class_weights:
                 # Update class weights based on validation
@@ -147,15 +146,13 @@ def main(args: argparse.Namespace, activeloop: bool = True) -> None:
                 loss_function = nn.CrossEntropyLoss(weight=class_weights)
 
             metrics_logger.log_testing_epochs(e, model, test_sampler, loss_function, device)
+
             if MonteCarlo:
                 avg = metrics_logger.log_testing_epochs(e, model, test_sampler, loss_function, device)
                 softmaxList.append(avg)
 
-            #Stores the model weights
-
             # Plots the both training and the testing losses of the logged model
-            metrics_logger.plot_training_testing_losses(MCd = False)
-
+            metrics_logger.plot_training_testing_losses()
             # current_test_error = metrics_logger.current_test_error
             #
             # if current_test_error < lowest_test_error:
@@ -171,9 +168,8 @@ def main(args: argparse.Namespace, activeloop: bool = True) -> None:
             #         f"Test error increased for {rollback_threshold} consecutive epochs. Rolling back to the best model.")
             #     model.load_state_dict(best_model_state)
             #     break
-
-            metrics_logger.plot_training_testing_losses()
             scheduler.step()
+
 
 
     if not Path("model_weights/").exists():
@@ -202,10 +198,10 @@ def main(args: argparse.Namespace, activeloop: bool = True) -> None:
     model.eval()
 
     # Calculate ECE before calibration
-    metrics_logger.calculate_and_log_ece()
+    #metrics_logger.calculate_and_log_ece()
 
     # Calibrate model using optimal temperature scaling and evaluate
-    opt_temperature = calibrate_model.calibrate_evaluate(model, validation_sampler, test_dataset, device)
+    #opt_temperature = calibrate_model.calibrate_evaluate(model, validation_sampler, test_dataset, device)
 
     # SoftMax Demo
     #print_images_with_probabilities(model, test_dataset, device, opt_temperature)
@@ -213,7 +209,6 @@ def main(args: argparse.Namespace, activeloop: bool = True) -> None:
     #SAVES MODEL WEIGHTS OF FINAL EPOCH
     #torch.save(model.state_dict(), 'SAVED_MODEL.pth')
     #torch.save(model.state_dict(), 'SAVED_MODEL_V2.pth')
-
 
 
 def setup_model_device(model, DEBUG):
@@ -245,7 +240,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
     parser.add_argument(
-        "--nb_epochs", help="number of training iterations", default=50, type=int
+        "--nb_epochs", help="number of training iterations", default=25, type=int
     )
     parser.add_argument("--batch_size", help="batch_size", default=50, type=int)
     parser.add_argument(
@@ -253,7 +248,7 @@ if __name__ == "__main__":
         help="whether to balance batches for class labels",
         action='store_true'
     )
-    parser.set_defaults(balanced_batches=True)
+    parser.set_defaults(balanced_batches=False)
     args = parser.parse_args()
 
     main(args)

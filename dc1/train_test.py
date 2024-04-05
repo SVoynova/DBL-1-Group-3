@@ -230,11 +230,11 @@ def test_model(
     softmax_tensor = torch.stack(softmaxLis)
     overall_average = torch.mean(softmax_tensor, dim=0)
 
-#    return losses, binary_accuracy, binary_precision, binary_recall, roc_auc_dict, labels_distr,datadis,overall_average
-
-
-    return losses, binary_accuracy, binary_precision, binary_recall, roc_auc_dict, labels_distr, datadis, all_probabilities, all_labels
+    #return losses, binary_accuracy, binary_precision, binary_recall, roc_auc_dict, labels_distr,datadis,overall_average
+    #return losses, binary_accuracy, binary_precision, binary_recall, roc_auc_dict, labels_distr, datadis, all_probabilities, all_labels
     #return losses, binary_accuracy, binary_precision, binary_recall, roc_auc_dict, labels_distr, datadis
+
+    return losses, binary_accuracy, binary_precision, binary_recall, roc_auc_dict, labels_distr,datadis
 
 
 def get_activation(name):
