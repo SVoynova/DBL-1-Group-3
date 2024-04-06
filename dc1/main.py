@@ -1,12 +1,10 @@
-from netcal.presentation import ReliabilityDiagram
-from torch.utils.data import DataLoader
 
 from dc1 import calibrate_model
 from dc1.batch_sampler import BatchSampler
 from dc1.image_dataset import ImageDataset
 from dc1.net import Net
-import train_test
-#from dc1.calibrate_model import calibrate_evaluate
+
+from dc1.calibrate_model import calibrate_evaluate
 
 from torchsummary import summary  # type: ignore
 import torch
@@ -21,40 +19,45 @@ import plotext  # type: ignore
 from pathlib import Path
 import os
 from netcal.presentation import ReliabilityDiagram
-import matplotlib.pyplot as plt
 
 # Utility class for the evaluation metric things
 from MCDropout import MCDropoutAnalysis
-from dc1.softmaxOutputDemo import print_images_with_probabilities
 from evaluationMetricUtility import EvaluationMetricsLogger
 from torch.optim import AdamW
 from torch.optim.lr_scheduler import StepLR
+import random
 matplotlib.use('TkAgg')
 
-#def main(args: argparse.Namespace, activeloop: bool = True) -> None:
 
 def main(args: argparse.Namespace, activeloop: bool = True) -> None:
+    seed_value = 15
+    random.seed(seed_value)
+    np.random.seed(seed_value)  # Numpy module
+    torch.manual_seed(seed_value)  # PyTorch for CPU operations
+
     # Load the train and test datasets. Enable data augmentation by setting the augmentation flag to True.
     # The second 'False' refers to the augmentation flag (set to True to enable augmentation).
     # The first 'False' addresses class imbalance; it should be set to True for training data to handle imbalance,
     # and False for test data. If no 'labels_for_augmentation' is specified but augmentation is enabled,
     # apply augmentation to all classes.
-    train_dataset = ImageDataset(Path("../data/X_train.npy"),
-                                 Path("../data/Y_train.npy"), False, False, [0, 1, 2, 3, 4, 5])
-    test_dataset = ImageDataset(Path("../data/X_test.npy"),
-                                Path("../data/Y_test.npy"), False, False, [0, 1, 2, 3, 4, 5])
 
     #
+    # train_dataset = ImageDataset(Path("../data/X_train.npy"),
+    #                              Path("../data/Y_train.npy"), False, True, [0, 1, 2, 3, 4, 5])
+    # test_dataset = ImageDataset(Path("../data/X_test.npy"),
+    #                             Path("../data/Y_test.npy"), False, False, [0, 1, 2, 3, 4, 5])
+    #
+    # #
     adjust_class_weights = False  # Set this to true to enable class weights adjustment using the validation set
 
     # For training dataset
-    train_dataset = ImageDataset(Path("../data/X_train.npy"), Path("../data/Y_train.npy"), True, False,
+    train_dataset = ImageDataset(Path("../data/X_train.npy"), Path("../data/Y_train.npy"), True, True,
                                  [0, 1, 2, 3, 4, 5])
     # For validation dataset
     #validation_dataset = ImageDataset(Path("../data/X_train.npy"), Path("../data/Y_train.npy"), True, False,
     #                                  is_validation=True, split_ratio=0.1)
     # Test dataset remains the same
-    test_dataset = ImageDataset(Path("../data/X_test.npy"), Path("../data/Y_test.npy"), True, False,
+    test_dataset = ImageDataset(Path("../data/X_test.npy"), Path("../data/Y_test.npy"), False, False,
                                 [0, 1, 2, 3, 4, 5])
 
     MonteCarlo = False
@@ -62,8 +65,7 @@ def main(args: argparse.Namespace, activeloop: bool = True) -> None:
 
     # Initialize the Neural Net with the number of distinct labels
     #Depth determins the number of layers employed, MCd to True for Monte Carlo Dropout
-    #model = Net(n_classes=6,  depth = 3, MCd = MonteCarlo)
-    model = Net(n_classes  = 6)
+    model = Net(n_classes=6,  depth = 3, MCd = MonteCarlo)
     #LOAD WEIGHTS OF SAVED MODEL
 
     #model.load_state_dict(torch.load("../dc1/SAVED_MODEL_V2.pth"))
@@ -142,11 +144,12 @@ def main(args: argparse.Namespace, activeloop: bool = True) -> None:
     # rollback_threshold = 2  # Number of epochs to wait before rolling back
     # best_model_state = None  # This will hold the best model's state in memory
 
+    min_loss = 1000
+
     # Loop over epochs to train and test the model, logging the metrics
     for e in range(n_epochs):
         if activeloop:
             metrics_logger.log_training_epochs(e, model, train_sampler, optimizer, loss_function, device, MCd=False)
-            #metrics_logger.log_training_epochs(e, model, train_sampler, optimizer, loss_function, device)
 
             if adjust_class_weights:
                 # Update class weights based on validation
@@ -155,7 +158,11 @@ def main(args: argparse.Namespace, activeloop: bool = True) -> None:
                 # Update the loss function with new class weights
                 loss_function = nn.CrossEntropyLoss(weight=class_weights)
 
-            metrics_logger.log_testing_epochs(e, model, test_sampler, loss_function, device)
+            training_loss = metrics_logger.log_testing_epochs(e, model, test_sampler, loss_function, device)
+
+            if training_loss.item() < min_loss:
+                torch.save(model.state_dict(), 'SAVED_MODEL_V3.pth')
+                min_loss = training_loss
 
             if MonteCarlo:
                 avg = metrics_logger.log_testing_epochs(e, model, test_sampler, loss_function, device)
@@ -163,21 +170,6 @@ def main(args: argparse.Namespace, activeloop: bool = True) -> None:
 
             # Plots the both training and the testing losses of the logged model
             metrics_logger.plot_training_testing_losses()
-            # current_test_error = metrics_logger.current_test_error
-            #
-            # if current_test_error < lowest_test_error:
-            #     lowest_test_error = current_test_error
-            #     epochs_since_improvement = 0
-            #     best_model_state = model.state_dict().copy()
-            #     print(f"Epoch {e}: New best model with test error {current_test_error}")
-            # else:
-            #     epochs_since_improvement += 1
-            #
-            # if epochs_since_improvement > rollback_threshold:
-            #     print(
-            #         f"Test error increased for {rollback_threshold} consecutive epochs. Rolling back to the best model.")
-            #     model.load_state_dict(best_model_state)
-            #     break
 
             scheduler.step()
 
@@ -204,9 +196,7 @@ def main(args: argparse.Namespace, activeloop: bool = True) -> None:
     #metrics_logger.plot_loss_and_accuracy(n_epochs)
     #metrics_logger.plot_roc_curve(n_epochs, train_test)
 
-
     model.eval()
-
 
     # Calculate ECE before calibration
     #metrics_logger.calculate_and_log_ece()
@@ -214,8 +204,11 @@ def main(args: argparse.Namespace, activeloop: bool = True) -> None:
     # Calibrate model using optimal temperature scaling and evaluate
     #opt_temperature = calibrate_model.calibrate_evaluate(model, validation_sampler, test_dataset, device)
     # Even if no calibration is implemented, this is useful
+
     # Calculate ECE , Brier score and reliability diagram before calibration
-    metrics_logger.calculate_and_log_ece()
+    if Calibration:
+        metrics_logger.calculate_and_log_ece()
+
     # Plot reliability diagram for each class before calibration, saved in directory graphs
     for i in range(0,6):
         metrics_logger.multiclass_calibration_curve(i, False)
@@ -230,7 +223,7 @@ def main(args: argparse.Namespace, activeloop: bool = True) -> None:
 
     #SAVES MODEL WEIGHTS OF FINAL EPOCH
     #torch.save(model.state_dict(), 'SAVED_MODEL.pth')
-    #torch.save(model.state_dict(), 'SAVED_MODEL_V2.pth')
+    torch.save(model.state_dict(), 'SAVED_MODEL_V3.pth')
 
 def setup_model_device(model, DEBUG):
     """
@@ -238,6 +231,7 @@ def setup_model_device(model, DEBUG):
     """
     # Moving our model to the right device (CUDA will speed training up significantly!)
     if torch.cuda.is_available() and not DEBUG:
+        torch.cuda.manual_seed(seed_value)
         print("@@@ CUDA device found, enabling CUDA training...")
         device = "cuda"
         model.to(device)
@@ -257,6 +251,7 @@ def setup_model_device(model, DEBUG):
 
 
 if __name__ == "__main__":
+
     parser = argparse.ArgumentParser()
 
     parser.add_argument(

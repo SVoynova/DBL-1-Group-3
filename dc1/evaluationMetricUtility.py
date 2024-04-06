@@ -16,7 +16,7 @@ from pathlib import Path
 from datetime import datetime
 import numpy as np
 from netcal.metrics import ECE
-#from netcal.presentation import ReliabilityDiagram
+from netcal.presentation import ReliabilityDiagram
 
 class EvaluationMetricsLogger:
     def __init__(self):
@@ -89,7 +89,7 @@ class EvaluationMetricsLogger:
             self._print_metrics(epoch, mean_loss, test_acc, test_prec, test_rec, labels_distr, datadis, train=False)
 
         #return overall_avg
-
+        return mean_loss
     def plot_training_testing_losses(self,MCd: bool = False):
         if not MCd:
             # Plot scatter of training and testing losses using plotext

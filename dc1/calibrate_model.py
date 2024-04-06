@@ -6,8 +6,8 @@ import numpy as np
 from dc1.evaluationMetricUtility import EvaluationMetricsLogger
 from temperature_scaling import TemperatureScaling
 from sklearn.metrics import brier_score_loss
-from netcal.metrics import ECE
-from netcal.presentation import ReliabilityDiagram
+#from netcal.metrics import ECE
+#from netcal.presentation import ReliabilityDiagram
 import matplotlib.pyplot as plt
 
 
