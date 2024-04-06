@@ -6,8 +6,8 @@ import numpy as np
 from dc1.evaluationMetricUtility import EvaluationMetricsLogger
 from temperature_scaling import TemperatureScaling
 from sklearn.metrics import brier_score_loss
-#from netcal.metrics import ECE
-#from netcal.presentation import ReliabilityDiagram
+from netcal.metrics import ECE
+from netcal.presentation import ReliabilityDiagram
 import matplotlib.pyplot as plt
 
 
@@ -44,18 +44,23 @@ def calibrate_evaluate(model, validation_sampler, test_dataset, loss_function, d
     targets = np.eye(6)[targets]  # Convert to one-hot encoding for Brier score
 
     # Calculate metrics
-    ece = ECE(15)  # Using 15 bins for ECE
+    ece = ECE(10)  # Using 15 bins for ECE
     ece_value = ece.measure(predictions, targets.argmax(axis=1))
     average_brier_score = multi_class_brier_score(targets, predictions)
 
     print(f"Expected Calibration Error (ECE) after calibration: {ece_value}")
     print("Average Brier Score for Multi-Class:", average_brier_score)
 
-    # Plot reliability diagram for each class after calibration
+    """# Plot reliability diagram for each class after calibration
     metrics_logger.pred_probs_test = predictions
     metrics_logger.true_labels_test = np.argmax(targets, axis=1)
     for i in range(0,6):
-        metrics_logger.multiclass_calibration_curve(i, True)
+        metrics_logger.multiclass_calibration_curve(i, True)"""
+    # Plot reliability diagram for each class after calibration
+    metrics_logger.pred_probs_test = predictions
+    metrics_logger.true_labels_test = np.argmax(targets, axis=1)
+    for i in range(6):
+        metrics_logger.multiclass_calibration_curve(i, True)  # Specify the number of bins here
 
     return optimal_temperature
 

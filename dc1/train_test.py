@@ -234,10 +234,7 @@ def test_model(
     #return losses, binary_accuracy, binary_precision, binary_recall, roc_auc_dict, labels_distr, datadis, all_probabilities, all_labels
     #return losses, binary_accuracy, binary_precision, binary_recall, roc_auc_dict, labels_distr, datadis
 
-    return losses, binary_accuracy, binary_precision, binary_recall, roc_auc_dict, labels_distr,datadis
-
-    #SILVIA
-#    return losses, binary_accuracy, binary_precision, binary_recall, roc_auc_dict, labels_distr,datadis,overall_average, all_probabilities, all_labels
+    return losses, binary_accuracy, binary_precision, binary_recall, roc_auc_dict, labels_distr,datadis, overall_average, all_probabilities, all_labels
 
 def get_activation(name):
     # This function will return another function that will be used as a hook
