@@ -51,7 +51,7 @@ def main(args: argparse.Namespace, activeloop: bool = True) -> None:
     adjust_class_weights = False  # Set this to true to enable class weights adjustment using the validation set
 
     # For training dataset
-    train_dataset = ImageDataset(Path("../data/X_train.npy"), Path("../data/Y_train.npy"), True, True,
+    train_dataset = ImageDataset(Path("../data/X_train.npy"), Path("../data/Y_train.npy"), False, False,
                                  [0, 1, 2, 3, 4, 5])
     # For validation dataset
     #validation_dataset = ImageDataset(Path("../data/X_train.npy"), Path("../data/Y_train.npy"), True, False,
@@ -223,7 +223,7 @@ def main(args: argparse.Namespace, activeloop: bool = True) -> None:
 
     #SAVES MODEL WEIGHTS OF FINAL EPOCH
     #torch.save(model.state_dict(), 'SAVED_MODEL.pth')
-    torch.save(model.state_dict(), 'SAVED_MODEL_V3.pth')
+    #torch.save(model.state_dict(), 'SAVED_MODEL_V3.pth')
 
 def setup_model_device(model, DEBUG):
     """
@@ -263,7 +263,7 @@ if __name__ == "__main__":
         help="whether to balance batches for class labels",
         action='store_true'
     )
-    parser.set_defaults(balanced_batches=False)
+    parser.set_defaults(balanced_batches=True)
     args = parser.parse_args()
 
     main(args)
