@@ -35,8 +35,8 @@ class ImageDataset:
         self.targets = np.load(y)
         self.imgs = np.load(x)
 
-        # if is_validation:
-        #     self.imgs, self.targets = self.split_validation_set(split_ratio)
+        if is_validation:
+            self.imgs, self.targets = self.split_validation_set(self, split_ratio = split_ratio)
 
         # Augmentation flag (set in the constructor)
         self.augment = augment
@@ -112,7 +112,6 @@ class ImageDataset:
         image = torch.from_numpy(image / 255).float()  # Normalize and convert to tensor
         return image, label
 
-    @staticmethod
     def split_validation_set(self, split_ratio):
 
         total_samples = len(self.targets)

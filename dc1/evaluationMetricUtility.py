@@ -4,19 +4,19 @@ import torch
 import plotext
 from matplotlib.pyplot import figure
 import matplotlib.pyplot as plt
-from netcal.presentation import ReliabilityDiagram
+#from netcal.presentation import ReliabilityDiagram
 from sklearn.calibration import calibration_curve
 from torch.utils.data import DataLoader
 
 import dc1
-import dc1.calibrate_model
+#import dc1.calibrate_model
 from dc1 import calibrate_model
 from dc1.train_test import train_model, test_model, label_names
 from pathlib import Path
 from datetime import datetime
 import numpy as np
 from netcal.metrics import ECE
-from netcal.presentation import ReliabilityDiagram
+#from netcal.presentation import ReliabilityDiagram
 
 class EvaluationMetricsLogger:
     def __init__(self):

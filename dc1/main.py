@@ -1,10 +1,9 @@
-
 from dc1 import calibrate_model
 from dc1.batch_sampler import BatchSampler
 from dc1.image_dataset import ImageDataset
 from dc1.net import Net
 
-from dc1.calibrate_model import calibrate_evaluate
+#from dc1.calibrate_model import calibrate_evaluate
 
 from torchsummary import summary  # type: ignore
 import torch
@@ -18,7 +17,7 @@ import argparse
 import plotext  # type: ignore
 from pathlib import Path
 import os
-from netcal.presentation import ReliabilityDiagram
+#from netcal.presentation import ReliabilityDiagram
 
 # Utility class for the evaluation metric things
 from MCDropout import MCDropoutAnalysis
@@ -51,14 +50,12 @@ def main(args: argparse.Namespace, activeloop: bool = True) -> None:
     adjust_class_weights = False  # Set this to true to enable class weights adjustment using the validation set
 
     # For training dataset
-    train_dataset = ImageDataset(Path("../data/X_train.npy"), Path("../data/Y_train.npy"), False, False,
-                                 [0, 1, 2, 3, 4, 5])
+    train_dataset = ImageDataset(Path("../data/X_train.npy"), Path("../data/Y_train.npy"), False, False, False)
     # For validation dataset
-    #validation_dataset = ImageDataset(Path("../data/X_train.npy"), Path("../data/Y_train.npy"), True, False,
-    #                                  is_validation=True, split_ratio=0.1)
+    validation_dataset = ImageDataset(Path("../data/X_train.npy"), Path("../data/Y_train.npy"), False, False, is_validation=True, split_ratio=0.1)
+
     # Test dataset remains the same
-    test_dataset = ImageDataset(Path("../data/X_test.npy"), Path("../data/Y_test.npy"), False, False,
-                                [0, 1, 2, 3, 4, 5])
+    test_dataset = ImageDataset(Path("../data/X_test.npy"), Path("../data/Y_test.npy"), False, False, False)
 
     MonteCarlo = False
     Calibration = False
