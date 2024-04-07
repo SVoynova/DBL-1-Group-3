@@ -1,4 +1,4 @@
-from dc1 import calibrate_model
+from dc1 import calibrate_model, train_test
 from dc1.batch_sampler import BatchSampler
 from dc1.image_dataset import ImageDataset
 from dc1.net import Net
@@ -21,6 +21,7 @@ import os
 
 # Utility class for the evaluation metric things
 from MCDropout import MCDropoutAnalysis
+from dc1.softmaxOutputDemo import print_images_with_probabilities
 from evaluationMetricUtility import EvaluationMetricsLogger
 from torch.optim import AdamW
 from torch.optim.lr_scheduler import StepLR
@@ -54,11 +55,13 @@ def main(args: argparse.Namespace, activeloop: bool = True) -> None:
     # For validation dataset
     validation_dataset = ImageDataset(Path("../data/X_train.npy"), Path("../data/Y_train.npy"), False, False, is_validation=True, split_ratio=0.1)
 
+#    validation_dataset = ImageDataset(Path("../data/X_train.npy"), Path("../data/Y_train.npy"), True, False,
+#                                      is_validation=True, split_ratio=0.1)
     # Test dataset remains the same
     test_dataset = ImageDataset(Path("../data/X_test.npy"), Path("../data/Y_test.npy"), False, False, False)
 
     MonteCarlo = False
-    Calibration = False
+    Calibration = True
 
     # Initialize the Neural Net with the number of distinct labels
     #Depth determins the number of layers employed, MCd to True for Monte Carlo Dropout
@@ -112,10 +115,10 @@ def main(args: argparse.Namespace, activeloop: bool = True) -> None:
         batch_size=batch_size, dataset=train_dataset, balanced=args.balanced_batches
     )
 
-    # validation_sampler = BatchSampler(
-    #     batch_size=args.batch_size, dataset=validation_dataset, balanced=args.balanced_batches
-    #     # Assuming balanced=False disables balancing
-    # )
+    validation_sampler = BatchSampler(
+         batch_size=args.batch_size, dataset=validation_dataset, balanced=args.balanced_batches
+         # Assuming balanced=False disables balancing
+    )
 
     test_sampler = BatchSampler(
         batch_size=100, dataset=test_dataset, balanced=args.balanced_batches
@@ -187,36 +190,32 @@ def main(args: argparse.Namespace, activeloop: bool = True) -> None:
 
     # Plot overall loss and accuracy, and ROC curve for model evaluation
     # RE-ADD AFTER
-    #metrics_logger.plot_loss_and_accuracy(n_epochs)
-    #metrics_logger.plot_roc_curve(n_epochs, train_test)
+    metrics_logger.plot_loss_and_accuracy(n_epochs)
+    metrics_logger.plot_roc_curve(n_epochs, train_test)
 
     #metrics_logger.plot_loss_and_accuracy(n_epochs)
     #metrics_logger.plot_roc_curve(n_epochs, train_test)
 
     model.eval()
 
-    # Calculate ECE before calibration
-    #metrics_logger.calculate_and_log_ece()
+    # SoftMax Demo before calibration
+    #print_images_with_probabilities(model, test_dataset, device)
 
-    # Calibrate model using optimal temperature scaling and evaluate
-    #opt_temperature = calibrate_model.calibrate_evaluate(model, validation_sampler, test_dataset, device)
     # Even if no calibration is implemented, this is useful
-
     # Calculate ECE , Brier score and reliability diagram before calibration
-    if Calibration:
-        metrics_logger.calculate_and_log_ece()
-
+    metrics_logger.calculate_and_log_ece()
     # Plot reliability diagram for each class before calibration, saved in directory graphs
-    for i in range(0,6):
+    for i in range(0, 6):
         metrics_logger.multiclass_calibration_curve(i, False)
 
     if Calibration:
         # Calibrate model using optimal temperature scaling and evaluate
         # This calculates ECE, Brier score and plots reliability diagrams after calibration
-        opt_temperature = calibrate_model.calibrate_evaluate(model, validation_sampler, test_dataset, loss_function, device)
+        opt_temperature = calibrate_model.calibrate_evaluate(model, validation_sampler, test_dataset, loss_function,
+                                                             device)
 
     # SoftMax Demo
-    #print_images_with_probabilities(model, test_dataset, device, opt_temperature)
+    print_images_with_probabilities(model, test_dataset, device)
 
     #SAVES MODEL WEIGHTS OF FINAL EPOCH
     #torch.save(model.state_dict(), 'SAVED_MODEL.pth')
@@ -228,7 +227,7 @@ def setup_model_device(model, DEBUG):
     """
     # Moving our model to the right device (CUDA will speed training up significantly!)
     if torch.cuda.is_available() and not DEBUG:
-        torch.cuda.manual_seed(seed_value)
+        #torch.cuda.manual_seed(seed_value)
         print("@@@ CUDA device found, enabling CUDA training...")
         device = "cuda"
         model.to(device)

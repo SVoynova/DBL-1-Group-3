@@ -54,12 +54,7 @@ class EvaluationMetricsLogger:
 
     def log_testing_epochs(self, epoch: int, model, test_sampler, loss_function, device):
         # Log testing metrics for each epoch, including ROC AUC
-        test_losses, test_acc, test_prec, test_rec, roc_auc_dict, labels_distr, datadis = test_model(model,test_sampler, loss_function, device)
-
-        #print(f"ROC AUC dict for epoch {epoch + 1}: {roc_auc_dict}")
-#        test_losses, test_acc, test_prec, test_rec, roc_auc_dict, labels_distr, datadis, pred_probs, true_labels = test_model(model, test_sampler, loss_function, device)
-        #SILVIA
-#        test_losses, test_acc, test_prec, test_rec, roc_auc_dict, labels_distr, datadis, overall_avg, pred_probs, true_labels = test_model(model, test_sampler, loss_function, device)
+        test_losses, test_acc, test_prec, test_rec, roc_auc_dict, labels_distr, datadis, overall_avg, pred_probs, true_labels = test_model(model, test_sampler, loss_function, device)
 
         print(f"ROC AUC dict for epoch {epoch + 1}: {roc_auc_dict}")
         # Extended to capture prediction probabilities and true labels
@@ -80,8 +75,8 @@ class EvaluationMetricsLogger:
         # test_losses, test_acc, test_prec, test_rec, roc_auc_dict, labels_distr, datadis, pred_probs, true_labels = test_model(model, test_sampler, loss_function, device)
 
         # Store prediction probabilities and true labels
-#        self.pred_probs_test.extend(pred_probs)
-#        self.true_labels_test.extend(true_labels)
+        self.pred_probs_test.extend(pred_probs)
+        self.true_labels_test.extend(true_labels)
 
 
         verbose = True
@@ -163,7 +158,7 @@ class EvaluationMetricsLogger:
         diagram.plot(pred_probs_flat, true_labels_flat)
         plt.show()"""
 
-    def multiclass_calibration_curve(self, class_index, calibration):
+    def multiclass_calibration_curve(self, class_index, calibration, num_bins=10):
 
         pred_probs = np.array(self.pred_probs_test)
         true_labels = np.array(self.true_labels_test)
@@ -200,11 +195,6 @@ class EvaluationMetricsLogger:
 
         # Save the figure
         if calibration == False:
-            # Calculate the average Brier score for multi-class
-            predictions = np.array(self.pred_probs_test)
-            targets = np.eye(6)[self.true_labels_test]  # Convert to one-hot encoding for Brier score
-            average_brier_score = calibrate_model.multi_class_brier_score(targets, predictions)  # Assuming true_labels is correct
-            print(f"Average Brier Score for Multi-Class before calibration: {average_brier_score}")
             # Customize the plot
             plt.ylabel('Fraction of positives')
             plt.xlabel('Mean predicted value')
@@ -345,6 +335,12 @@ class EvaluationMetricsLogger:
         ece_value = ece_metric.measure(pred_probs_flat, true_labels_flat)
 
         print(f"Expected Calibration Error (ECE) before calibration: {ece_value}")
+
+        # Calculate the average Brier score for multi-class
+        predictions = np.array(self.pred_probs_test)
+        targets = np.eye(6)[self.true_labels_test]  # Convert to one-hot encoding for Brier score
+        average_brier_score = calibrate_model.multi_class_brier_score(targets, predictions)  # Assuming true_labels is correct
+        print(f"Average Brier Score for Multi-Class before calibration: {average_brier_score}")
 
     import matplotlib.pyplot as plt
     from sklearn.calibration import calibration_curve

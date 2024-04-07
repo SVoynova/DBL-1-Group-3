@@ -36,7 +36,7 @@ class ImageDataset:
         self.imgs = np.load(x)
 
         if is_validation:
-            self.imgs, self.targets = self.split_validation_set(self, split_ratio = split_ratio)
+            self.imgs, self.targets = self.split_validation_set(split_ratio)
 
         # Augmentation flag (set in the constructor)
         self.augment = augment

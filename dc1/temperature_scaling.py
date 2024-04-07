@@ -28,7 +28,7 @@ class TemperatureScaling(nn.Module):
         labels = torch.cat(labels_list).detach()
 
         # Optimize the temperature
-        optimizer = optim.LBFGS([self.temperature], lr=0.01, max_iter=50)
+        optimizer = optim.LBFGS([self.temperature], lr=0.01, max_iter=100)
 
         def nll():
             loss = nn.CrossEntropyLoss()
