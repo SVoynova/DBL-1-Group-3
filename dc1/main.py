@@ -2,8 +2,7 @@ from dc1 import calibrate_model, train_test
 from dc1.batch_sampler import BatchSampler
 from dc1.image_dataset import ImageDataset
 from dc1.net import Net
-
-#from dc1.calibrate_model import calibrate_evaluate
+from dc1.calibrate_model import calibrate_evaluate
 
 from torchsummary import summary  # type: ignore
 import torch
@@ -17,7 +16,7 @@ import argparse
 import plotext  # type: ignore
 from pathlib import Path
 import os
-#from netcal.presentation import ReliabilityDiagram
+from netcal.presentation import ReliabilityDiagram
 
 # Utility class for the evaluation metric things
 from MCDropout import MCDropoutAnalysis
@@ -52,6 +51,7 @@ def main(args: argparse.Namespace, activeloop: bool = True) -> None:
 
     # For training dataset
     train_dataset = ImageDataset(Path("../data/X_train.npy"), Path("../data/Y_train.npy"), False, False, False)
+
     # For validation dataset
     validation_dataset = ImageDataset(Path("../data/X_train.npy"), Path("../data/Y_train.npy"), False, False, is_validation=True, split_ratio=0.1)
 
@@ -68,20 +68,15 @@ def main(args: argparse.Namespace, activeloop: bool = True) -> None:
     model = Net(n_classes=6,  depth = 3, MCd = MonteCarlo)
     #LOAD WEIGHTS OF SAVED MODEL
 
-    #model.load_state_dict(torch.load("../dc1/SAVED_MODEL_V2.pth"))
-
-    # Initialize optimizer and loss function - original params: lr=0.001, momentum=0.1
-    # optimizer = optim.SGD(model.parameters(), lr=0.005, momentum=0.1)
+    #model.load_state_dict(torch.load("../dc1/V.pth"))
 
     optimizer = AdamW(model.parameters(), lr=0.00025)  # AdamW requires a lower LR generally
 
     # Define a scheduler as before
     scheduler = StepLR(optimizer, step_size=30, gamma=0.1)
 
-    #    loss_function = nn.CrossEntropyLoss()
     #Modified loss function to compensate for class imbalances
     #class_weights = torch.tensor([2, 2, 2, 1.0, 3, 4], dtype=torch.float)
-
     #class_weights = torch.tensor([2., 2.5, 2, 1.4, 4, 4.8], dtype=torch.float)
 
     class_weights = torch.tensor([1, 1, 1, 1, 1, 1], dtype=torch.float)
@@ -161,7 +156,7 @@ def main(args: argparse.Namespace, activeloop: bool = True) -> None:
             training_loss = metrics_logger.log_testing_epochs(e, model, test_sampler, loss_function, device)
 
             if training_loss.item() < min_loss:
-                torch.save(model.state_dict(), 'SAVED_MODEL_V3.pth')
+                torch.save(model.state_dict(), 'BEST_WEIGHTS.pth')
                 min_loss = training_loss
 
             if MonteCarlo:
@@ -215,11 +210,10 @@ def main(args: argparse.Namespace, activeloop: bool = True) -> None:
                                                              device)
 
     # SoftMax Demo
-    print_images_with_probabilities(model, test_dataset, device)
+    #print_images_with_probabilities(model, test_dataset, device)
 
     #SAVES MODEL WEIGHTS OF FINAL EPOCH
-    #torch.save(model.state_dict(), 'SAVED_MODEL.pth')
-    #torch.save(model.state_dict(), 'SAVED_MODEL_V3.pth')
+    torch.save(model.state_dict(), 'FINAL_WEIGHTS.pth')
 
 def setup_model_device(model, DEBUG):
     """
@@ -251,7 +245,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
     parser.add_argument(
-        "--nb_epochs", help="number of training iterations", default=25, type=int
+        "--nb_epochs", help="number of training iterations", default=1, type=int
     )
     parser.add_argument("--batch_size", help="batch_size", default=50, type=int)
     parser.add_argument(

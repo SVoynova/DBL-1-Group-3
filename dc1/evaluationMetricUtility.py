@@ -16,7 +16,6 @@ from pathlib import Path
 from datetime import datetime
 import numpy as np
 from netcal.metrics import ECE
-#from netcal.presentation import ReliabilityDiagram
 
 class EvaluationMetricsLogger:
     def __init__(self):

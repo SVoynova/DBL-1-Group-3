@@ -123,6 +123,7 @@ class Net(nn.Module):
 
         return x
 
+#SPRINT 2 Model + Baseline
 
 # class ResidualBlock(nn.Module):
 #     def __init__(self, in_channels, out_channels, stride=1, expansion=1, apply_dropout: bool = False):
